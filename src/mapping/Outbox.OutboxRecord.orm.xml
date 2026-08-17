@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Mapping for CoolMS\Core\Outbox\OutboxRecord.
+
+    Kept out of the entity so the Domain class is plain PHP: Core's Domain layer
+    must not import Doctrine, or coolms/core cannot be published without the ORM.
+
+    The <id> block is a copy of what IdentifierProviderTrait declares in
+    attributes for every other entity in the application. There is no way to
+    share it: Doctrine resolves one driver per class, so an XML-mapped entity
+    gets nothing from the trait's attributes. Change the trait and these files
+    have to change with it.
+-->
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="CoolMS\Core\Outbox\OutboxRecord" table="coolms_outbox">
+
+        <indexes>
+            <index name="idx_outbox_unpublished" columns="published_at"/>
+        </indexes>
+
+        <id name="id" type="uuid" column="id">
+            <generator strategy="CUSTOM"/>
+            <custom-id-generator class="Symfony\Bridge\Doctrine\IdGenerator\UuidGenerator"/>
+        </id>
+
+        <field name="type" column="type" type="string" length="128"/>
+        <field name="payload" column="payload" type="json"/>
+        <field name="occurredAt" column="occurred_at" type="datetimetz_immutable"/>
+        <field name="createdAt" column="created_at" type="datetimetz_immutable"/>
+        <field name="messageId" column="message_id" type="string" length="128" nullable="true"/>
+        <field name="publishedAt" column="published_at" type="datetimetz_immutable" nullable="true"/>
+        <field name="attempts" column="attempts" type="integer">
+            <options>
+                <option name="default">0</option>
+            </options>
+        </field>
+
+    </entity>
+
+</doctrine-mapping>

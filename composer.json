@@ -1,0 +1,60 @@
+{
+    "name": "coolms/core-doctrine",
+    "description": "Doctrine ORM/DBAL adapters for coolms/core: outbox and inbox stores, the sync change feed, config overrides, range column types and the RQL-aware base repository",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "coolms",
+        "doctrine",
+        "orm",
+        "dbal",
+        "outbox",
+        "repository"
+    ],
+    "authors": [
+        {
+            "name": "Dmitry Popov"
+        }
+    ],
+    "require": {
+        "php": "^8.5",
+        "coolms/core": "^1.0",
+        "coolms/rql": "^1.0",
+        "coolms/rql-doctrine": "^1.0",
+        "doctrine/dbal": "^4.0",
+        "doctrine/doctrine-bundle": "^3.2",
+        "doctrine/orm": "^3.0",
+        "doctrine/persistence": "^4.0",
+        "psr/clock": "^1.0",
+        "psr/log": "^3.0",
+        "symfony/clock": "^8.0",
+        "symfony/dependency-injection": "^8.0",
+        "symfony/event-dispatcher-contracts": "^3.0",
+        "symfony/http-kernel": "^8.0",
+        "symfony/uid": "^8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.5"
+    },
+    "provide": {
+        "coolms/core-persistence-implementation": "1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "CoolMS\\Core\\Doctrine\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "CoolMS\\Core\\Doctrine\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

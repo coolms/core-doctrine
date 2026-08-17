@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Mapping for CoolMS\Core\Config\ConfigOverride.
+
+    createdAt / updatedAt / accessedAt come from TimestampableTrait and are
+    datetime_immutable, NOT datetimetz_immutable like the outbox timestamps.
+    The difference is real and predates this file; it is preserved verbatim
+    rather than tidied, because changing a column type here would be a silent
+    migration.
+
+    #[ORM\HasLifecycleCallbacks] was on the entity but registered no callbacks,
+    so there is nothing to carry over - confirmed against the resolved
+    metadata, which reported an empty lifecycle map.
+-->
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="CoolMS\Core\Config\ConfigOverride"
+            table="coolms_config_overrides"
+            repository-class="CoolMS\Core\Doctrine\Config\ConfigOverrideRepository">
+
+        <unique-constraints>
+            <unique-constraint name="uq_config_override_type_id" columns="config_type,config_id"/>
+        </unique-constraints>
+
+        <id name="id" type="uuid" column="id">
+            <generator strategy="CUSTOM"/>
+            <custom-id-generator class="Symfony\Bridge\Doctrine\IdGenerator\UuidGenerator"/>
+        </id>
+
+        <field name="configType" column="config_type" type="string" length="191"/>
+        <field name="configId" column="config_id" type="string" length="191"/>
+        <field name="data" column="data" type="json"/>
+        <field name="createdAt" column="created_at" type="datetime_immutable"/>
+        <field name="updatedAt" column="updated_at" type="datetime_immutable"/>
+        <field name="accessedAt" column="accessed_at" type="datetime_immutable"/>
+
+    </entity>
+
+</doctrine-mapping>

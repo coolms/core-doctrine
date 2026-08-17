@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Mapping for CoolMS\Core\Inbox\InboxRecord.
+-->
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="CoolMS\Core\Inbox\InboxRecord" table="coolms_inbox">
+
+        <unique-constraints>
+            <unique-constraint name="uniq_inbox_consumer_message" columns="consumer,message_id"/>
+        </unique-constraints>
+
+        <id name="id" type="uuid" column="id">
+            <generator strategy="CUSTOM"/>
+            <custom-id-generator class="Symfony\Bridge\Doctrine\IdGenerator\UuidGenerator"/>
+        </id>
+
+        <field name="consumer" column="consumer" type="string" length="128"/>
+        <field name="messageId" column="message_id" type="string" length="128"/>
+        <field name="processedAt" column="processed_at" type="datetimetz_immutable"/>
+        <field name="ref" column="ref" type="string" length="64" nullable="true"/>
+
+    </entity>
+
+</doctrine-mapping>

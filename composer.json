@@ -20,7 +20,7 @@
         "php": "^8.5",
         "coolms/core": "^1.0",
         "coolms/rql": "^1.0",
-        "coolms/rql-doctrine": "^1.0",
+        "coolms/rql-doctrine": "^2.0",
         "doctrine/dbal": "^4.0",
         "doctrine/doctrine-bundle": "^3.2",
         "doctrine/orm": "^3.0",

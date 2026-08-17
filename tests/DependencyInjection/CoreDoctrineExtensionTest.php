@@ -133,7 +133,9 @@ final class CoreDoctrineExtensionTest extends TestCase
 
             // SimplifiedXmlDriver derives the file name from the class name
             // minus the prefix, dots for separators.
-            preg_match('/<entity name="CoolMS\\\\Core\\\\([A-Za-z\\\\]+)"/', $xml, $m);
+            if (1 !== preg_match('/<entity name="CoolMS\\\\Core\\\\([A-Za-z\\\\]+)"/', $xml, $m)) {
+                self::fail(basename($file) . ' has no <entity name="CoolMS\Core\..."> element');
+            }
             $expected = str_replace('\\', '.', $m[1]) . '.orm.xml';
             self::assertSame($expected, basename($file));
         }

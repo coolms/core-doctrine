@@ -33,7 +33,7 @@ final class CoreDoctrineExtension extends Extension implements PrependExtensionI
 {
     public function load(array $configs, ContainerBuilder $container): void
     {
-        // Cross-module transactional seam (M2.d). Application-layer
+        // Cross-module transactional seam. Application-layer
         // orchestrators that span multiple Domain repositories under an
         // all-or-nothing wrap depend on TransactionRunnerInterface so they never
         // have to import a Doctrine EntityManager directly -- CoolmsArchitectureRule

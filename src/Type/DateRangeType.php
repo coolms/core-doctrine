@@ -21,8 +21,8 @@ use JsonException;
  * range (LCAP/BPM consumers: workflow validity windows, scheduler
  * activation windows, contract terms, report period selectors).
  *
- * Same self-registration pattern as `WorkingHoursType` shipped in
- * M1.2.a: the type is registered through Core's Extension::prepend()
+ * Same self-registration pattern as `WorkingHoursType`: the type is
+ * registered through Core's Extension::prepend()
  * so any module can use it without a host `doctrine.yaml` edit.
  *
  * Storage: portable JSON via `getJsonTypeDeclarationSQL()` -- Postgres

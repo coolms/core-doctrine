@@ -56,5 +56,10 @@
         "sort-packages": true
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-v2-generation": "2.0.x-dev"
+        }
+    }
 }

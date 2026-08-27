@@ -55,6 +55,20 @@ jobs:
 
       # No composer.lock here (it's a library), so this resolves fresh every
       # run and catches a dependency drifting out from under the constraints.
+      # The siblings this package requires at ^2.0 are not tagged yet: the
+      # tag is made from the very merge this check is gating. Their
+      # generation branch carries a branch-alias, so relaxing stability HERE
+      # -- never in the published manifest, and after the validate step above
+      # has already seen the real one -- lets the resolve succeed, which is
+      # what lets the lint and test steps below run at all. Without it the
+      # install fails and everything behind it is SKIPPED, so a red check
+      # says nothing about the code. Once 2.0.0 is published, prefer-stable
+      # picks the tag and these two lines do nothing.
+      - name: Allow the untagged generation branch of siblings
+        run: |
+          composer config minimum-stability dev
+          composer config prefer-stable true
+
       - name: Install dependencies
         run: |
           if [ "${{ matrix.deps }}" = 'lowest' ]; then

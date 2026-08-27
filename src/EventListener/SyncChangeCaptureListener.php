@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace CoolMS\Core\Doctrine\EventListener;
 
+use CoolMS\Core\Backup\SyncedTableSetInterface;
 use CoolMS\Core\ChangeFeed\SyncChange;
 use CoolMS\Core\ChangeFeed\SyncChangeOp;
 use CoolMS\Core\ChangeFeed\SyncChangesCaptured;
-use CoolMS\CoreModule\Backup\BackupTableRegistry;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\OnFlushEventArgs;
@@ -41,7 +41,7 @@ use function reset;
  * feed insert fails the whole flush rolls back (correct for CDC), unlike a best-effort
  * realtime ping.
  *
- * **Capture scope = the backup contributors' tables** ({@see BackupTableRegistry}, B.2.1),
+ * **Capture scope = the backup contributors' tables** ({@see SyncedTableSetInterface}, B.2.1),
  * equal to what backup EXPORTS -- but note this file claimed exactly that while
  * it was FALSE (`coolms_identity_user_groups` was exported and uncapturable), so
  * treat the equality as a property to re-check when adding a table, not a given. Non-synced
@@ -96,7 +96,7 @@ final class SyncChangeCaptureListener
     private bool $capturedInFlush = false;
 
     public function __construct(
-        private readonly BackupTableRegistry $syncedTables,
+        private readonly SyncedTableSetInterface $syncedTables,
         private readonly ClockInterface $clock,
         private readonly EventDispatcherInterface $events,
     ) {

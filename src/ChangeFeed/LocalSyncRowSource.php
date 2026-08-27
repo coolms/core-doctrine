@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace CoolMS\Core\Doctrine\ChangeFeed;
 
+use CoolMS\Core\Backup\SyncedTableSetInterface;
 use CoolMS\Core\Backup\TableBackupPortInterface;
 use CoolMS\Core\ChangeFeed\SyncRowSourceInterface;
-use CoolMS\CoreModule\Backup\BackupTableRegistry;
 
 /**
  * The same-host {@see SyncRowSourceInterface}: hydrates changed rows straight from the
@@ -14,7 +14,7 @@ use CoolMS\CoreModule\Backup\BackupTableRegistry;
  * its own change feed. The EDGE uses a REMOTE (HTTP) source instead — an edge replaying
  * the controller's feed against its OWN DB would find nothing to copy locally.
  *
- * The key column is asked of {@see BackupTableRegistry::ownerColumnFor()} rather than
+ * The key column is asked of {@see SyncedTableSetInterface::ownerColumnFor()} rather than
  * assumed to be `id`: for an owned-collection table the feed's `row_id` names the
  * OWNER, so `$ids` are owner ids and the fetch returns that owner's whole current set —
  * which is exactly what the applier's set-replace needs.
@@ -27,7 +27,7 @@ final readonly class LocalSyncRowSource implements SyncRowSourceInterface
 {
     public function __construct(
         private TableBackupPortInterface $tables,
-        private BackupTableRegistry $registry,
+        private SyncedTableSetInterface $registry,
     ) {
     }
 

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace CoolMS\Core\Doctrine\ChangeFeed;
 
+use CoolMS\Core\Backup\SyncedTableSetInterface;
 use CoolMS\Core\ChangeFeed\SyncChange;
 use CoolMS\Core\ChangeFeed\SyncChangeOp;
 use CoolMS\Core\ChangeFeed\SyncChangeRecorderInterface;
-use CoolMS\CoreModule\Backup\BackupTableRegistry;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
@@ -36,7 +36,7 @@ final readonly class DoctrineSyncChangeRecorder implements SyncChangeRecorderInt
 {
     public function __construct(
         private Connection $connection,
-        private BackupTableRegistry $syncedTables,
+        private SyncedTableSetInterface $syncedTables,
         private ClockInterface $clock,
     ) {
     }

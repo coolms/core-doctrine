@@ -18,9 +18,9 @@
     ],
     "require": {
         "php": "^8.5",
-        "coolms/core": "^1.0",
+        "coolms/core": "^2.0",
         "coolms/rql": "^1.0",
-        "coolms/rql-doctrine": "^1.0",
+        "coolms/rql-doctrine": "^1.0.1",
         "doctrine/dbal": "^4.0",
         "doctrine/doctrine-bundle": "^3.2",
         "doctrine/orm": "^3.0",
@@ -37,7 +37,7 @@
         "phpunit/phpunit": "^12.5"
     },
     "provide": {
-        "coolms/core-persistence-implementation": "1.0"
+        "coolms/core-persistence-implementation": "2.0"
     },
     "autoload": {
         "psr-4": {
@@ -56,5 +56,10 @@
         "sort-packages": true
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-v2-generation": "2.0.x-dev"
+        }
+    }
 }

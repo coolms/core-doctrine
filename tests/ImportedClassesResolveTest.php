@@ -65,11 +65,10 @@ final class ImportedClassesResolveTest extends TestCase
                     continue;
                 }
 
-                $missing[$class] = sprintf(
-                    '%s (imported by %s)',
-                    $class,
-                    str_replace($src . '/', '', $file->getPathname()),
-                );
+                // Keyed by class, VALUE a list of files: the same absent class
+                // is usually imported by several, and reporting one of them
+                // makes the blast radius look like a single line to change.
+                $missing[$class][] = str_replace($src . '/', '', $file->getPathname());
             }
         }
 
@@ -81,7 +80,12 @@ final class ImportedClassesResolveTest extends TestCase
             'no CoolMS imports were found under src/ -- the scan is broken, not clean',
         );
 
-        self::assertSame([], array_values($missing), sprintf(
+        $report = [];
+        foreach ($missing as $class => $importers) {
+            $report[] = sprintf('%s (imported by %s)', $class, implode(', ', $importers));
+        }
+
+        self::assertSame([], $report, sprintf(
             '%d of %d imported CoolMS classes are absent from the installed tree. '
             . 'A constraint floor is lower than what this code needs.',
             count($missing),

@@ -59,7 +59,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-v2-generation": "2.0.x-dev"
+            "dev-develop": "2.0.x-dev"
         }
     }
 }

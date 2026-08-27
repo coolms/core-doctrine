@@ -9,6 +9,9 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 
+use function count;
+use function dirname;
+
 /**
  * Every `use CoolMS\...` in src/ must resolve against the INSTALLED tree.
  *
@@ -28,7 +31,7 @@ final class ImportedClassesResolveTest extends TestCase
 {
     public function testEveryImportedCoolmsClassResolves(): void
     {
-        $src = \dirname(__DIR__) . '/src';
+        $src = dirname(__DIR__) . '/src';
         self::assertDirectoryExists($src);
 
         $checked = 0;
@@ -38,7 +41,7 @@ final class ImportedClassesResolveTest extends TestCase
         $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src));
 
         foreach ($files as $file) {
-            if (!$file->isFile() || $file->getExtension() !== 'php') {
+            if (!$file->isFile() || 'php' !== $file->getExtension()) {
                 continue;
             }
 
@@ -81,7 +84,7 @@ final class ImportedClassesResolveTest extends TestCase
         self::assertSame([], array_values($missing), sprintf(
             '%d of %d imported CoolMS classes are absent from the installed tree. '
             . 'A constraint floor is lower than what this code needs.',
-            \count($missing),
+            count($missing),
             $checked,
         ));
     }

@@ -19,7 +19,6 @@ use CoolMS\Core\Outbox\OutboxRelayRepositoryInterface;
 use CoolMS\Core\Transaction\TransactionRunnerInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
-use CoolMS\Core\Doctrine\DependencyInjection\Compiler\ModuleMigrationPathsPass;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 
 /**
@@ -84,11 +83,6 @@ final class CoreDoctrineExtension extends Extension implements PrependExtensionI
      */
     public function prepend(ContainerBuilder $container): void
     {
-        // A package that ships its own tables gets its migrations/
-        // directory registered. Here rather than in core-bundle: that one is
-        // the framework integration and must not reach the ORM.
-        new ModuleMigrationPathsPass()->prepend($container);
-
         $container->prependExtensionConfig('doctrine', [
             'dbal' => [
                 'types' => [

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace CoolMS\Core\Doctrine;
 
+use CoolMS\Core\Doctrine\DependencyInjection\Compiler\ModuleMigrationPathsPass;
 use CoolMS\Core\Doctrine\DependencyInjection\CoreDoctrineExtension;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 /**
@@ -25,6 +27,19 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  */
 final class CoreDoctrineBundle extends Bundle
 {
+    public function build(ContainerBuilder $container): void
+    {
+        parent::build($container);
+        // A package that ships its own tables gets its `migrations/` directory
+        // registered. In THIS package because choosing the ORM is what it does;
+        // `coolms/core-bundle` is the framework integration and must not reach it.
+        //
+        // In build() rather than the extension's prepend(): the pass reads
+        // `kernel.bundles_metadata`, which build() is guaranteed and an extension
+        // called with a bare container is not.
+        new ModuleMigrationPathsPass()->prepend($container);
+    }
+
     // Narrower than the parent's `?ExtensionInterface`: this bundle always has
     // an extension, and saying so spares every caller a null check.
     public function getContainerExtension(): ExtensionInterface

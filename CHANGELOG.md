@@ -27,6 +27,23 @@ external consumers of these packages. This tag establishes the baseline the
 documentation describes; nothing follows it until somebody outside the project
 installs one, at which point the release policy resumes.
 
+### Added: a package can ship its own migrations
+
+`ModuleMigrationPathsPass`, prepended from this package's extension, registers
+every registered bundle's `migrations/` directory so a module can carry the
+tables it maps instead of asking the application to carry them. It belongs in
+this package rather than the framework integration for the same reason the
+mappings do: choosing the ORM is something this package does.
+
+⚠️ NEW migrations only. The applied-migrations table stores the fully-qualified
+class name, so moving an existing migration into a package makes it look
+unapplied and run again on every database that already has it -- which for a
+`CREATE TABLE` fails outright.
+
+⚠️ The parent directory is examined only when the bundle path ends in `src`.
+Climbing unconditionally leaves the package and lands in the vendor namespace
+directory, where a sibling package can share the name being looked for.
+
 ### The v2 generation -- a version number, and nothing else
 
 This release moves `coolms/core-doctrine` to `2.0.0` **without a single change to its

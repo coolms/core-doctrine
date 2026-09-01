@@ -102,7 +102,14 @@ final class ModuleMigrationPathsPassTest extends TestCase
 
     protected function tearDown(): void
     {
-        foreach (array_reverse($this->temp) as $dir) {
+        // Deepest first. Reverse insertion order is NOT the same thing: a test
+        // that registers a parent before its children then rmdirs the parent
+        // while it still has contents, which warns -- and this package fails on
+        // warnings, so it was green locally under the root config and red here.
+        $dirs = $this->temp;
+        usort($dirs, static fn (string $a, string $b): int => strlen($b) <=> strlen($a));
+
+        foreach ($dirs as $dir) {
             if (is_dir($dir)) {
                 rmdir($dir);
             }

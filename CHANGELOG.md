@@ -16,11 +16,25 @@ same commit as the change it describes.
 statement of where the platform is: the shape is still moving, and a stable tag
 would be a promise that cannot be kept yet.
 
-Composer will not install it under default stability. Either set
-`"minimum-stability": "alpha"` with `"prefer-stable": true`, or ask for it per
-package with `^2.0@alpha`. A bare `composer require coolms/core-doctrine` takes the
-newest **stable** release instead -- which is the previous generation -- and
-reports success while doing it.
+Composer will not install it under default stability. Set
+
+```json
+"minimum-stability": "alpha",
+"prefer-stable": true
+```
+
+in your root `composer.json`, then `composer require coolms/core-doctrine:^2.0`.
+`prefer-stable` keeps every other dependency of yours on its newest stable
+release, so this loosening applies to what actually needs it and nothing else.
+
+⚠️ **A per-package flag is not enough here.** `composer require
+coolms/core-doctrine:^2.0@alpha` admits the alpha of the package it names and
+**nothing behind it**, so the siblings this one pulls in still fail to resolve.
+Composer reports it against the sibling, not against what you asked for.
+
+A bare `composer require coolms/core-doctrine` takes the newest **stable** release
+instead -- which is the previous generation -- and reports success while doing
+it.
 
 Releases are suspended while development is moving fast and there are no
 external consumers of these packages. This tag establishes the baseline the

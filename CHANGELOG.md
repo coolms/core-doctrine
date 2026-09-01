@@ -23,7 +23,12 @@ Composer will not install it under default stability. Set
 "prefer-stable": true
 ```
 
-in your root `composer.json`, then `composer require coolms/core-doctrine:^2.0`.
+in your root `composer.json`, then:
+
+```
+composer require coolms/core-doctrine:^2.0
+```
+
 `prefer-stable` keeps every other dependency of yours on its newest stable
 release, so this loosening applies to what actually needs it and nothing else.
 
@@ -32,9 +37,8 @@ coolms/core-doctrine:^2.0@alpha` admits the alpha of the package it names and
 **nothing behind it**, so the siblings this one pulls in still fail to resolve.
 Composer reports it against the sibling, not against what you asked for.
 
-A bare `composer require coolms/core-doctrine` takes the newest **stable** release
-instead -- which is the previous generation -- and reports success while doing
-it.
+A bare `composer require coolms/core-doctrine` resolves **successfully** to
+v1.0.1 -- the previous generation -- and reports success while doing it.
 
 Releases are suspended while development is moving fast and there are no
 external consumers of these packages. This tag establishes the baseline the

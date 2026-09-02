@@ -55,26 +55,55 @@ jobs:
 
       # No composer.lock here (it's a library), so this resolves fresh every
       # run and catches a dependency drifting out from under the constraints.
-      # The siblings this package requires at ^2.0 are not tagged yet: the
-      # tag is made from the very merge this check is gating. Their
-      # generation branch carries a branch-alias, so relaxing stability HERE
-      # -- never in the published manifest, and after the validate step above
-      # has already seen the real one -- lets the resolve succeed, which is
-      # what lets the lint and test steps below run at all. Without it the
-      # install fails and everything behind it is SKIPPED, so a red check
-      # says nothing about the code. Once 2.0.0 is published, prefer-stable
-      # picks the tag and these two lines do nothing.
-      - name: Allow the untagged generation branch of siblings
+      #
+      # The platform siblings ship in LOCKSTEP with this package: a release
+      # tags them together, so their published tag and this branch are only
+      # ever out of step inside the settling window -- which is exactly where
+      # CI lives. Pin them to the generation branch so the resolve sees the
+      # code this branch was written against. Never in the published
+      # manifest, and after `composer validate --strict` above has already
+      # seen the real one.
+      #
+      # Relaxing stability used to be enough on its own. It stopped being
+      # enough the day the generation got its FIRST ALPHA TAG -- not at 2.0.0
+      # as the old comment here predicted. prefer-stable ranks alpha above
+      # dev, so v2.0.0-alpha1 began winning over dev-develop and the hatch
+      # closed silently: the install succeeded against a sibling that no
+      # longer had the classes this branch imports.
+      #
+      # Scoped deliberately.
+      # The independent packages are on their own majors, so their
+      # published tags are the right thing to test against, and
+      # --prefer-lowest goes on doing its real job on every
+      # third-party floor.
+      - name: Resolve the platform siblings from the generation branch
         run: |
           composer config minimum-stability dev
           composer config prefer-stable true
+          # A new coolms dependency has to be classified before it can be
+          # resolved, so this list cannot go stale without the build saying so.
+          php -r '
+            $d = json_decode(file_get_contents("composer.json"), true);
+            $known = ["coolms/core", "coolms/rql", "coolms/rql-doctrine"];
+            $seen = array_merge(array_keys($d["require"] ?? []),
+                                array_keys($d["require-dev"] ?? []));
+            $new = array_diff(array_filter($seen,
+                static fn ($p) => str_starts_with($p, "coolms/")), $known);
+            if ($new) {
+                fwrite(STDERR, "unclassified coolms dependency -- classify it in "
+                    . "this workflow before it can be resolved: "
+                    . implode(", ", $new) . PHP_EOL);
+                exit(1);
+            }
+          '
 
       - name: Install dependencies
         run: |
+          WITH='--with coolms/core:2.0.x-dev'
           if [ "${{ matrix.deps }}" = 'lowest' ]; then
-            composer update --prefer-lowest --prefer-dist --no-interaction --no-progress
+            composer update --prefer-lowest --prefer-dist --no-interaction --no-progress $WITH
           else
-            composer update --prefer-dist --no-interaction --no-progress
+            composer update --prefer-dist --no-interaction --no-progress $WITH
           fi
 
       - name: Lint sources

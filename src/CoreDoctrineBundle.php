@@ -25,6 +25,27 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  * An alternative adapter satisfies the same virtual package and replaces this
  * bundle wholesale.
  */
+/*
+ * -- Why this package does not require symfony/config -----------------------
+ *
+ * It looks like it should. Bundle extends
+ * DependencyInjection\Kernel\AbstractBundle, which implements
+ * Config\Definition\ConfigurableInterface -- and symfony/dependency-injection
+ * carries symfony/config in require-dev, not require. That exact chain is why
+ * the theme packages had to declare it: installed alone they died with
+ * Interface "...ConfigurableInterface" not found.
+ *
+ * This package does not, and the reason is measured rather than assumed:
+ * installing coolms/core-doctrine alone from Packagist, with no path
+ * repositories, loads this class successfully. symfony/config arrives because
+ * doctrine/doctrine-bundle -- a hard require here -- requires it DIRECTLY
+ * (not merely through symfony/framework-bundle).
+ *
+ * Recorded so the next sweep does not reopen it. What would change the
+ * answer: doctrine-bundle dropping that requirement. The guarantee is real
+ * but second-hand, so if this package ever stops requiring doctrine-bundle,
+ * declare symfony/config here in the same commit.
+ */
 final class CoreDoctrineBundle extends Bundle
 {
     public function build(ContainerBuilder $container): void

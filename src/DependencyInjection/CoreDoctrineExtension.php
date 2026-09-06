@@ -54,7 +54,8 @@ final class CoreDoctrineExtension extends Extension implements PrependExtensionI
             ->setPublic(false);
 
         // F7 relay side (the read half of the outbox). The publisher stays in
-        // core-bundle: dispatching is Messenger, not persistence.
+        // core-bundle: dispatching is a messaging concern, not a
+        // persistence one, and this package owns persistence.
         $container->setAlias(OutboxRelayRepositoryInterface::class, DbalOutboxRelayRepository::class)
             ->setPublic(false);
 

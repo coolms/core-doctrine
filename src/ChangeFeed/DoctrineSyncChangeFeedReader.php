@@ -18,7 +18,7 @@ use function min;
 use function sprintf;
 
 /**
- * DBAL projection of the controller→edge change-feed — the Doctrine
+ * DBAL projection of the controller->edge change-feed -- the Doctrine
  * adapter behind {@see SyncChangeFeedReaderInterface}. Reads `coolms_sync_changes` after a
  * `seq` cursor as a plain ordered window; the port's docblock carries the cursor design +
  * the deferred commit-ordering boundary. Kept a pure window so the delivery machinery has

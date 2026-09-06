@@ -59,7 +59,7 @@ final class CoreDoctrineExtension extends Extension implements PrependExtensionI
         $container->setAlias(OutboxRelayRepositoryInterface::class, DbalOutboxRelayRepository::class)
             ->setPublic(false);
 
-        // F7 §2 -- consumer idempotency store.
+        // F7 section 2 -- consumer idempotency store.
         $container->setAlias(ProcessedMessageStoreInterface::class, DbalProcessedMessageStore::class)
             ->setPublic(false);
 
@@ -95,7 +95,7 @@ final class CoreDoctrineExtension extends Extension implements PrependExtensionI
         ]);
 
         // Core's four persisted rows -- the transactional outbox,
-        // the consumer-idempotency inbox (F7 §2), the sync change-feed
+        // the consumer-idempotency inbox (F7 section 2), the sync change-feed
         // and the config-override store.
         //
         // XML, not attributes: the entity classes ship in `coolms/core`, which

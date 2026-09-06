@@ -12,7 +12,7 @@ use Throwable;
 /**
  * Doctrine-backed {@see ConnectionTransactionRunnerInterface}: begins / commits /
  * rolls back at the DBAL connection level (no EntityManager involved), so the commit
- * is immune to a closed EM — see the interface docblock for the F7 outbox-relay
+ * is immune to a closed EM -- see the interface docblock for the F7 outbox-relay
  * rationale.
  *
  * Spelled out as begin/commit/rollback (rather than `Connection::transactional`) so

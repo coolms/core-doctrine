@@ -12,7 +12,7 @@ use Doctrine\DBAL\ParameterType;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 
 /**
- * DBAL adapter for {@see SyncChangeFeedPrunerInterface} — Doctrine confined to
+ * DBAL adapter for {@see SyncChangeFeedPrunerInterface} -- Doctrine confined to
  * `Infrastructure\Doctrine\`, mirroring {@see DoctrineSyncChangeFeedReader}.
  *
  * DBAL is mandatory here, not stylistic: `seq` is `GENERATED ALWAYS AS IDENTITY` and
@@ -50,7 +50,7 @@ final readonly class DoctrineSyncChangeFeedPruner implements SyncChangeFeedPrune
     }
 
     /**
-     * The one predicate both methods share — so a count can never disagree with the
+     * The one predicate both methods share -- so a count can never disagree with the
      * delete it previews.
      *
      * @return array{0: string, 1: array<string, mixed>, 2: array<string, ParameterType>}

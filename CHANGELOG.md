@@ -10,6 +10,21 @@ major number means here.
 history when this file was created. Every entry after that is written in the
 same commit as the change it describes.
 
+## 2.0.0-alpha2 - 2026-09-09
+### Changed
+
+- Follows the renamed application tier and the nested bundle namespace:
+  `coolms/core-application` (`CoolMS\Core\Application\`) and
+  `CoolMS\Core\Bundle\`. `CoolMS\Core\Doctrine\` is unchanged -- this
+  package has had the nested form since it was created.
+- The composite-key delete in the table backup is expressed with the pipe
+  operator, parenthesised where PHP requires it: concatenation and casts bind
+  tighter than `|>`, so the unparenthesised form applied them to the wrong
+  operand.
+- Records why this package does not require `symfony/config`.
+- The outbox relay note names the concern rather than a component.
+- Comments and docblocks are ascii; development-only files are export-ignored.
+
 ## 2.0.0-alpha1 - 2026-09-01
 
 **A pre-release. It carries no compatibility promise**, which is the honest

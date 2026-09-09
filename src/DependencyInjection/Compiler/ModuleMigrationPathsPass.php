@@ -22,7 +22,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  * requires the namespace only to tell one path's classes from another's -- so
  * the convention has to be followed by the files themselves.
  *
- * ⚠️ **This is for NEW migrations. An existing one cannot be moved here.**
+ * !! **This is for NEW migrations. An existing one cannot be moved here.**
  * `doctrine_migration_versions.version` stores the fully-qualified class name,
  * so moving `DoctrineMigrations\VersionX` to `Acme\CrmBundle\Migrations\VersionX`
  * makes Doctrine consider it unapplied and run it again on every database that
@@ -30,7 +30,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  * migration does something worse. The application's existing migrations stay
  * where they are; a package ships the ones it adds from now on.
  *
- * ⚠️ Ordering is by version identifier ACROSS all registered paths, not by
+ * !! Ordering is by version identifier ACROSS all registered paths, not by
  * package: Doctrine sorts the whole set and package boundaries do not enter
  * into it. A package whose migration needs another package's table must
  * therefore carry a later identifier than it, and requiring that package is
@@ -65,7 +65,7 @@ final readonly class ModuleMigrationPathsPass
             // it to return the package root, which the ones carrying templates
             // do. Both conventions are live, so both are examined.
             //
-            // ⚠️ The parent is examined ONLY when the path ends in `src`.
+            // !! The parent is examined ONLY when the path ends in `src`.
             // Climbing unconditionally leaves the package and lands in the
             // vendor NAMESPACE directory, where a sibling package can share the
             // name being looked for: every `vendor/doctrine/*` bundle matched

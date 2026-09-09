@@ -15,7 +15,7 @@ use function max;
 
 /**
  * DBAL-backed {@see OutboxRelayRepositoryInterface}. The claim is a native
- * `FOR UPDATE SKIP LOCKED` SELECT (Postgres/MySQL) — the standard outbox-relay
+ * `FOR UPDATE SKIP LOCKED` SELECT (Postgres/MySQL) -- the standard outbox-relay
  * primitive (also the M5 external-worker's fetch-and-lock pattern), which DQL
  * cannot express. Working at the DBAL level keeps the relay off the ORM identity
  * map and avoids hydrating entities just to publish + stamp them.

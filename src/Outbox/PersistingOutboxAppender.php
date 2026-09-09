@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
  *
  * `#[Autoconfigure(public: true)]` so it survives the `App\` glob + stays
  * resolvable before any producer consumes the port (the port alias is pruned-as-
- * unused until the first producer migrates onto the outbox — by design), the same
+ * unused until the first producer migrates onto the outbox -- by design), the same
  * trick the analytics sink uses.
  */
 #[Autoconfigure(public: true)]
@@ -40,7 +40,7 @@ final readonly class PersistingOutboxAppender implements OutboxAppenderInterface
             throw new RuntimeException('No object manager is configured for the outbox; cannot append.');
         }
 
-        // Persist only — no flush. The row joins the caller's transaction and is
+        // Persist only -- no flush. The row joins the caller's transaction and is
         // committed when the producer commits its domain change.
         $manager->persist($record);
     }

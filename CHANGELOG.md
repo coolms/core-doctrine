@@ -6,7 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning is described in `CONTRIBUTING.md` -- read it before assuming what a
 major number means here.
 
-⚠️ Entries dated before 2026-09-01 were **reconstructed** from tags and commit
+!! Entries dated before 2026-09-01 were **reconstructed** from tags and commit
 history when this file was created. Every entry after that is written in the
 same commit as the change it describes.
 
@@ -32,7 +32,7 @@ composer require coolms/core-doctrine:^2.0
 `prefer-stable` keeps every other dependency of yours on its newest stable
 release, so this loosening applies to what actually needs it and nothing else.
 
-⚠️ **A per-package flag is not enough here.** `composer require
+!! **A per-package flag is not enough here.** `composer require
 coolms/core-doctrine:^2.0@alpha` admits the alpha of the package it names and
 **nothing behind it**, so the siblings this one pulls in still fail to resolve.
 Composer reports it against the sibling, not against what you asked for.
@@ -53,12 +53,12 @@ tables it maps instead of asking the application to carry them. It belongs in
 this package rather than the framework integration for the same reason the
 mappings do: choosing the ORM is something this package does.
 
-⚠️ NEW migrations only. The applied-migrations table stores the fully-qualified
+!! NEW migrations only. The applied-migrations table stores the fully-qualified
 class name, so moving an existing migration into a package makes it look
 unapplied and run again on every database that already has it -- which for a
 `CREATE TABLE` fails outright.
 
-⚠️ The parent directory is examined only when the bundle path ends in `src`.
+!! The parent directory is examined only when the bundle path ends in `src`.
 Climbing unconditionally leaves the package and lands in the vendor namespace
 directory, where a sibling package can share the name being looked for.
 

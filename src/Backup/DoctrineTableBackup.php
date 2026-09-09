@@ -23,7 +23,7 @@ use function preg_match;
 use function sprintf;
 
 /**
- * DBAL adapter for {@see TableBackupPortInterface} — the one tested engine every
+ * DBAL adapter for {@see TableBackupPortInterface} -- the one tested engine every
  * backup contributor reuses instead of hand-mapping entity fields (which would
  * couple to accessor APIs and drift on schema change).
  *
@@ -34,7 +34,7 @@ use function sprintf;
  */
 final readonly class DoctrineTableBackup implements TableBackupPortInterface
 {
-    /** Guard against identifier injection: table + column names come from contributor code, never user input, but validate anyway. */
+    /** Guard against identifier injection: table and column names come from contributor code, never user input, but validate anyway. */
     private const string IDENTIFIER_PATTERN = '/^[a-z_][a-z0-9_]*$/';
 
     /** Cap DELETE `IN (...)` list size so a large reconcile stays under the driver's placeholder limit. */
@@ -68,7 +68,7 @@ final readonly class DoctrineTableBackup implements TableBackupPortInterface
         // `GENERATED ALWAYS AS ... STORED`): they are derived, can't be INSERTed,
         // and are recomputed from their source on restore. Excluding them keeps the
         // bundle source-only and lets the row round-trip through a plain INSERT.
-        // Resolved ONCE, before the cursor opens — not per row.
+        // Resolved ONCE, before the cursor opens -- not per row.
         return $this->streamRows($table, $this->generatedColumns($table));
     }
 
@@ -112,7 +112,7 @@ final readonly class DoctrineTableBackup implements TableBackupPortInterface
             // JSON object keys are always strings; narrow explicitly for DBAL.
             // Derive a per-column bind type from each value's PHP type: JSON only
             // carries null/bool/int/float/string, and DBAL's default string bind
-            // turns a bool `false` into '' — which Postgres rejects for a boolean
+            // turns a bool `false` into '' -- which Postgres rejects for a boolean
             // column. Explicit BOOLEAN/INTEGER/NULL types keep the round-trip
             // lossless; JSONB/timestamp/uuid columns arrive as strings and cast fine.
             $columns = [];
@@ -297,10 +297,17 @@ final readonly class DoctrineTableBackup implements TableBackupPortInterface
         }
 
         $columnList = implode(', ', $keyColumns);
-        // Portable row-value tuple membership: `(c1, c2) IN ((?,?), (?,?), …)`.
+        // Portable row-value tuple membership: `(c1, c2) IN ((?,?), (?,?), ...)`.
         // Postgres / MySQL / SQLite all accept it; positional string binds suit the
         // UUID keys. Chunked so a large reconcile stays under the placeholder limit.
-        $tuplePlaceholder = '(' . implode(', ', array_fill(0, count($keyColumns), '?')) . ')';
+        // !! THE PIPE CHAIN IS PARENTHESISED, and it has to be. `.` binds
+        // TIGHTER than `|>`, so `'(' . $keyColumns |> count(...)` reads as
+        // `('(' . $keyColumns) |> count(...)` -- count() is handed a string and
+        // throws, and the trailing `. ')'` tries to concatenate a Closure.
+        $tuplePlaceholder = '(' . ($keyColumns
+                |> count(...)
+                |> (fn ($x) => array_fill(0, $x, '?'))
+                |> (fn ($x) => implode(', ', $x))) . ')';
 
         $deleted = 0;
         foreach (array_chunk($keys, self::COMPOSITE_DELETE_CHUNK) as $chunk) {
@@ -312,17 +319,21 @@ final readonly class DoctrineTableBackup implements TableBackupPortInterface
                     $params[] = $key[$column] ?? '';
                 }
             }
-            $deleted += (int) $this->connection->executeStatement(
-                sprintf('DELETE FROM %s WHERE (%s) IN (%s)', $table, $columnList, implode(', ', $tuples)),
-                $params,
-            );
+            // !! AND THE CAST IS PARENTHESISED FOR THE SAME REASON, but this
+            // one fails QUIETLY. A cast also binds tighter than `|>`, so
+            // `(int) implode(...) |> sprintf(...)` casts the tuple list to 0
+            // and hands sprintf that -- producing `... IN (0)` with the real
+            // parameters still bound. No TypeError; just the wrong statement.
+            $deleted += (int) (implode(', ', $tuples)
+                    |> (fn ($x) => sprintf('DELETE FROM %s WHERE (%s) IN (%s)', $table, $columnList, $x))
+                    |> (fn ($x) => $this->connection->executeStatement($x, $params)));
         }
 
         return $deleted;
     }
 
     /**
-     * The row-yielding half of {@see streamTable()} — split out so the identifier
+     * The row-yielding half of {@see streamTable()} -- split out so the identifier
      * guard above runs on call rather than on first iteration.
      *
      * @param list<string> $generated
@@ -370,7 +381,7 @@ final readonly class DoctrineTableBackup implements TableBackupPortInterface
     /**
      * The DB-generated columns of `$table` (ANSI `information_schema`, so it works
      * on Postgres + MySQL). Platforms without `information_schema` (e.g. SQLite)
-     * throw — treat that as "no generated columns" rather than failing the backup.
+     * throw -- treat that as "no generated columns" rather than failing the backup.
      *
      * @return list<string>
      */

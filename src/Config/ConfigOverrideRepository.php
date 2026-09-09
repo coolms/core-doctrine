@@ -30,7 +30,7 @@ final class ConfigOverrideRepository extends DoctrineRepository implements Confi
     /**
      * ## "No table" reads as "no override", and only here.
      *
-     * Config is read on databases that have not been migrated yet — a fresh
+     * Config is read on databases that have not been migrated yet -- a fresh
      * checkout, a CI job that builds before it migrates, an installer running
      * its own first migration. The platform managed without this table until
      * now, so a missing one must degrade to file-only config rather than take
@@ -41,9 +41,9 @@ final class ConfigOverrideRepository extends DoctrineRepository implements Confi
      * exception, which is the platform's ORM-agnostic rule and is enforced by a
      * phpstan boundary check.
      *
-     * ⚠️ `TableNotFoundException` ONLY, never its parent. The first cut caught
+     * !! `TableNotFoundException` ONLY, never its parent. The first cut caught
      * `DbalException` in the caller, and when this table's migration turned out
-     * to be missing `accessed_at` — a column the entity's own trait maps — every
+     * to be missing `accessed_at` -- a column the entity's own trait maps -- every
      * SELECT was refused and the platform quietly served files instead. Saving
      * worked, reading "worked", and no override ever appeared. A missing table
      * is an expected state; a table the entity cannot read is a bug, and a bug

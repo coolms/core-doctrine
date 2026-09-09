@@ -11,7 +11,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 /**
  * Doctrine-backed {@see ManagerResetterInterface}: delegates to
  * {@see ManagerRegistry::resetManager}, which replaces the (possibly closed)
- * default EntityManager with a fresh OPEN one wrapping the SAME connection — so an
+ * default EntityManager with a fresh OPEN one wrapping the SAME connection -- so an
  * ambient transaction on that connection (the relay's batch tx) is preserved.
  *
  * Lives under `Infrastructure\Doctrine\` per the architecture rule that fences

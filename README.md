@@ -13,7 +13,7 @@ commits to Doctrine, in one package.
 "provide": { "coolms/core-persistence-implementation": "1.0" }
 ```
 
-That line is the point. `coolms/core-module` requires the virtual package, this
+That line is the point. `coolms/core-application` requires the virtual package, this
 one provides it, and an alternative adapter substitutes by providing the same
 thing. Nothing upstream names a Doctrine class.
 

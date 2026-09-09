@@ -21,7 +21,7 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  * upstream and Doctrine came along as a hard dependency regardless.
  *
  * The seam is declared in composer.json: this package `provide`s
- * `coolms/core-persistence-implementation`, which `coolms/core-app` requires.
+ * `coolms/core-persistence-implementation`, which `coolms/core-application` requires.
  * An alternative adapter satisfies the same virtual package and replaces this
  * bundle wholesale.
  */

@@ -34,7 +34,7 @@ use function sprintf;
  */
 final readonly class DoctrineTableBackup implements TableBackupPortInterface
 {
-    /** Guard against identifier injection: table + column names come from contributor code, never user input, but validate anyway. */
+    /** Guard against identifier injection: table and column names come from contributor code, never user input, but validate anyway. */
     private const string IDENTIFIER_PATTERN = '/^[a-z_][a-z0-9_]*$/';
 
     /** Cap DELETE `IN (...)` list size so a large reconcile stays under the driver's placeholder limit. */
@@ -300,7 +300,14 @@ final readonly class DoctrineTableBackup implements TableBackupPortInterface
         // Portable row-value tuple membership: `(c1, c2) IN ((?,?), (?,?), ...)`.
         // Postgres / MySQL / SQLite all accept it; positional string binds suit the
         // UUID keys. Chunked so a large reconcile stays under the placeholder limit.
-        $tuplePlaceholder = '(' . implode(', ', array_fill(0, count($keyColumns), '?')) . ')';
+        // !! THE PIPE CHAIN IS PARENTHESISED, and it has to be. `.` binds
+        // TIGHTER than `|>`, so `'(' . $keyColumns |> count(...)` reads as
+        // `('(' . $keyColumns) |> count(...)` -- count() is handed a string and
+        // throws, and the trailing `. ')'` tries to concatenate a Closure.
+        $tuplePlaceholder = '(' . ($keyColumns
+                |> count(...)
+                |> (fn ($x) => array_fill(0, $x, '?'))
+                |> (fn ($x) => implode(', ', $x))) . ')';
 
         $deleted = 0;
         foreach (array_chunk($keys, self::COMPOSITE_DELETE_CHUNK) as $chunk) {
@@ -312,10 +319,14 @@ final readonly class DoctrineTableBackup implements TableBackupPortInterface
                     $params[] = $key[$column] ?? '';
                 }
             }
-            $deleted += (int) $this->connection->executeStatement(
-                sprintf('DELETE FROM %s WHERE (%s) IN (%s)', $table, $columnList, implode(', ', $tuples)),
-                $params,
-            );
+            // !! AND THE CAST IS PARENTHESISED FOR THE SAME REASON, but this
+            // one fails QUIETLY. A cast also binds tighter than `|>`, so
+            // `(int) implode(...) |> sprintf(...)` casts the tuple list to 0
+            // and hands sprintf that -- producing `... IN (0)` with the real
+            // parameters still bound. No TypeError; just the wrong statement.
+            $deleted += (int) (implode(', ', $tuples)
+                    |> (fn ($x) => sprintf('DELETE FROM %s WHERE (%s) IN (%s)', $table, $columnList, $x))
+                    |> (fn ($x) => $this->connection->executeStatement($x, $params)));
         }
 
         return $deleted;

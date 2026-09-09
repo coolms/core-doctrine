@@ -19,7 +19,7 @@ use CoolMS\Core\ChangeFeed\SyncRowSourceInterface;
  * OWNER, so `$ids` are owner ids and the fetch returns that owner's whole current set --
  * which is exactly what the applier's set-replace needs.
  *
- * No `#[AsAlias]`: {@see \CoolMS\CoreModule\ChangeFeed\SyncChangeApplier} takes the
+ * No `#[AsAlias]`: {@see \CoolMS\CoreApp\ChangeFeed\SyncChangeApplier} takes the
  * source per-call, so nothing autowires the interface (and a Local default would be the
  * wrong choice on an edge).
  */

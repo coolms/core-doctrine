@@ -6,8 +6,8 @@ namespace CoolMS\Core\Doctrine;
 
 use CoolMS\Core\Doctrine\DependencyInjection\Compiler\ModuleMigrationPathsPass;
 use CoolMS\Core\Doctrine\DependencyInjection\CoreDoctrineExtension;
-use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 /**

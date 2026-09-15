@@ -14,6 +14,9 @@ same commit as the change it describes.
 
 ### Added
 
+- README: `provide` is documented as a PLACEHOLDER, dated -- declared, read by
+  Composer alone, read by no code, no selector and no second adapter exist. The
+  two example blocks said `"1.0"`; the manifest says `"2.0"`. Corrected.
 - Declares `support` -- `issues` and `source` -- so a page imported from this
   package, and the catalogue, know where a correction is filed. Packagist filled
   the gap from GitHub when the manifest was silent; the declared field is the

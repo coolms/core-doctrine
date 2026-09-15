@@ -16,6 +16,10 @@
             "name": "Dmitry Popov"
         }
     ],
+    "support": {
+        "issues": "https://github.com/coolms/core-doctrine/issues",
+        "source": "https://github.com/coolms/core-doctrine"
+    },
     "require": {
         "php": "^8.5",
         "coolms/core": "^2.0",

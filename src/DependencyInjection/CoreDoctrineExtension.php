@@ -15,6 +15,7 @@ use CoolMS\Core\Doctrine\Type\DateTimeRangeType;
 use CoolMS\Core\Doctrine\Type\TimeRangeType;
 use CoolMS\Core\Inbox\ProcessedMessageStoreInterface;
 use CoolMS\Core\Outbox\OutboxAppenderInterface;
+use CoolMS\Core\Outbox\OutboxBacklogInterface;
 use CoolMS\Core\Outbox\OutboxRelayRepositoryInterface;
 use CoolMS\Core\Transaction\TransactionRunnerInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -56,6 +57,7 @@ final class CoreDoctrineExtension extends Extension implements PrependExtensionI
         // F7 relay side (the read half of the outbox). The publisher stays in
         // core-bundle: dispatching is a messaging concern, not a
         // persistence one, and this package owns persistence.
+        $container->setAlias(OutboxBacklogInterface::class, DbalOutboxRelayRepository::class);
         $container->setAlias(OutboxRelayRepositoryInterface::class, DbalOutboxRelayRepository::class)
             ->setPublic(false);
 

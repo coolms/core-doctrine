@@ -21,6 +21,10 @@ same commit as the change it describes.
   package, and the catalogue, know where a correction is filed. Packagist filled
   the gap from GitHub when the manifest was silent; the declared field is the
   one that holds on any registry.
+- `DbalOutboxRelayRepository` implements `OutboxBacklogInterface`: the
+  undelivered half of the outbox as numbers (unpublished, unpublished older than
+  a threshold, the oldest row), one aggregate over the indexed
+  `published_at IS NULL` partition; aliased for autowiring.
 
 ## 2.0.0-alpha2 - 2026-09-09
 ### Changed

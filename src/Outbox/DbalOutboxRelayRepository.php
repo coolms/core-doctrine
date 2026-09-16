@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace CoolMS\Core\Doctrine\Outbox;
 
+use CoolMS\Core\Outbox\OutboxBacklog;
+use CoolMS\Core\Outbox\OutboxBacklogInterface;
 use CoolMS\Core\Outbox\OutboxMessagePublished;
 use CoolMS\Core\Outbox\OutboxRelayRepositoryInterface;
 use DateTimeImmutable;
@@ -20,7 +22,7 @@ use function max;
  * cannot express. Working at the DBAL level keeps the relay off the ORM identity
  * map and avoids hydrating entities just to publish + stamp them.
  */
-final readonly class DbalOutboxRelayRepository implements OutboxRelayRepositoryInterface
+final readonly class DbalOutboxRelayRepository implements OutboxRelayRepositoryInterface, OutboxBacklogInterface
 {
     public function __construct(
         private Connection $connection,
@@ -86,6 +88,30 @@ final readonly class DbalOutboxRelayRepository implements OutboxRelayRepositoryI
             'SELECT COUNT(*) FROM coolms_outbox WHERE published_at IS NOT NULL AND published_at < ?',
             [$cutoff],
             [Types::DATETIMETZ_IMMUTABLE],
+        );
+    }
+
+    public function unpublishedBacklog(DateTimeImmutable $olderThan): OutboxBacklog
+    {
+        // One pass over the `published_at IS NULL` partition (indexed): the
+        // total, the stale subset by CASE (portable -- no FILTER clause), and
+        // the oldest row. Portable aggregates only.
+        /** @var array{total: int|string, stale: int|string|null, oldest: mixed}|false $row */
+        $row = $this->connection->fetchAssociative(
+            'SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN created_at < ? THEN 1 ELSE 0 END), 0) AS stale, MIN(created_at) AS oldest '
+            . 'FROM coolms_outbox WHERE published_at IS NULL',
+            [$olderThan],
+            [Types::DATETIMETZ_IMMUTABLE],
+        );
+        if (false === $row) {
+            return new OutboxBacklog(0, 0, null);
+        }
+        $oldest = $row['oldest'];
+
+        return new OutboxBacklog(
+            (int) $row['total'],
+            (int) ($row['stale'] ?? 0),
+            $oldest instanceof DateTimeImmutable ? $oldest : (null === $oldest || '' === $oldest ? null : new DateTimeImmutable((string) $oldest)),
         );
     }
 }

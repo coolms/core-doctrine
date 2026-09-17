@@ -13,6 +13,17 @@ same commit as the change it describes.
 ## Unreleased
 
 ### Added
+- `Health\DatabaseLivenessProbe`: answers whether the database is reachable by
+  running `SELECT 1`, which fails when the server is down, when credentials are
+  wrong and when the pool is exhausted -- three states in which an installation is
+  broken while its configuration looks perfect.
+- `Health\OutboxRelayProbe` (contributed by the modules session): reports the
+  unpublished outbox backlog -- rows past the grace period, rows in all, and the
+  oldest one's timestamp as the dependency's last known activity. The relay
+  records nothing of itself, so a stopped relay is inferred from its backlog
+  rather than asked, and the row says so.
+
+### Added
 
 - README: `provide` is documented as a PLACEHOLDER, dated -- declared, read by
   Composer alone, read by no code, no selector and no second adapter exist. The

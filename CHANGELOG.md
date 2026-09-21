@@ -21,7 +21,15 @@ same commit as the change it describes.
   unpublished outbox backlog -- rows past the grace period, rows in all, and the
   oldest one's timestamp as the dependency's last known activity. The relay
   records nothing of itself, so a stopped relay is inferred from its backlog
-  rather than asked, and the row says so.
+  rather than asked, and the row says so. Three outcomes, not two: rows past the
+  grace period is `DOWN`; rows inside it is `ok` (draining); NO unpublished row
+  is `unknown` -- an empty queue does not prove a consumer, and a dead relay
+  over an idle producer reads exactly like a live one. That row carries
+  `max(published_at)` as the last activity it CAN report, read here because the
+  backlog port has no last-published and this is the Doctrine package. An outbox
+  that cannot be read at all is `DOWN` with the exception named.
+  `OutboxRelayProbeTest` pins the three outcomes and that the empty case is
+  never `ok`.
 
 ### Added
 

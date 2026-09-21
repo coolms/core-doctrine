@@ -13,6 +13,13 @@ same commit as the change it describes.
 ## Unreleased
 
 ### Added
+- `Health\OutboxRelayProbe` reads the relay's heartbeat when one is wired
+  (`CoolMS\Core\Outbox\RelayHeartbeatInterface`, optional): a beat inside a
+  60-second window over a healthy backlog is ok, an empty queue included; no
+  beat or a beat past the window is a relay that stopped -- DOWN; a fresh beat
+  over rows past the grace period is a relay that runs and does not publish --
+  DOWN, named as such. Without a heartbeat the inference from the backlog and
+  its `unknown` for an empty queue stand as before.
 - `Health\DatabaseLivenessProbe`: answers whether the database is reachable by
   running `SELECT 1`, which fails when the server is down, when credentials are
   wrong and when the pool is exhausted -- three states in which an installation is

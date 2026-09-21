@@ -13,6 +13,25 @@ same commit as the change it describes.
 ## Unreleased
 
 ### Added
+- `Health\DatabaseLivenessProbe`: answers whether the database is reachable by
+  running `SELECT 1`, which fails when the server is down, when credentials are
+  wrong and when the pool is exhausted -- three states in which an installation is
+  broken while its configuration looks perfect.
+- `Health\OutboxRelayProbe` (contributed by the modules session): reports the
+  unpublished outbox backlog -- rows past the grace period, rows in all, and the
+  oldest one's timestamp as the dependency's last known activity. The relay
+  records nothing of itself, so a stopped relay is inferred from its backlog
+  rather than asked, and the row says so. Three outcomes, not two: rows past the
+  grace period is `DOWN`; rows inside it is `ok` (draining); NO unpublished row
+  is `unknown` -- an empty queue does not prove a consumer, and a dead relay
+  over an idle producer reads exactly like a live one. That row carries
+  `max(published_at)` as the last activity it CAN report, read here because the
+  backlog port has no last-published and this is the Doctrine package. An outbox
+  that cannot be read at all is `DOWN` with the exception named.
+  `OutboxRelayProbeTest` pins the three outcomes and that the empty case is
+  never `ok`.
+
+### Added
 
 - README: `provide` is documented as a PLACEHOLDER, dated -- declared, read by
   Composer alone, read by no code, no selector and no second adapter exist. The

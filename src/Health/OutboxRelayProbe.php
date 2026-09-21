@@ -45,10 +45,10 @@ use function sprintf;
  */
 final readonly class OutboxRelayProbe implements LivenessProbeInterface
 {
-    private const int GRACE_SECONDS = 600;
-
     /** A relay passes every few seconds; a minute without a beat is a stopped relay. */
     public const int BEAT_WINDOW_SECONDS = 60;
+
+    private const int GRACE_SECONDS = 600;
 
     public function __construct(
         private OutboxBacklogInterface $backlog,

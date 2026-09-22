@@ -13,6 +13,10 @@ same commit as the change it describes.
 ## Unreleased
 
 ### Removed
+- The change-feed adapters (recorder, reader, pruner, local row source), the
+  flush listener that captured what a unit of work committed, and the feed
+  row's mapping. This package maps and persists what the platform defines,
+  and the feed is no longer defined here.
 - The outbox and journal adapters (`Outbox\PersistingOutboxAppender`,
   `Outbox\DbalOutboxRelayRepository`, `Inbox\DbalProcessedMessageStore`), the
   relay's liveness probe and the two entity mappings that came with them. This

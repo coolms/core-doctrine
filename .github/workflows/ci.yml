@@ -112,23 +112,24 @@ jobs:
       - name: Run tests
         run: vendor/bin/phpunit --testdox
 
-      # SimplifiedXmlDriver derives the mapping file name from the class name
-      # minus the prefix. A mismatch is silent: the class simply never becomes
-      # an entity. The package's own test asserts this too; here it also guards
-      # a mapping file added without running the suite.
-      - name: Assert every mapping file is named for the class it maps
+      # The adapter maps NO entity. It used to map four rows that shipped in
+      # coolms/core -- the outbox, the idempotency journal, the sync change-feed
+      # and the config-override store -- and each moved to the module that reads
+      # and writes it. This step used to check that every mapping file was named
+      # for its class; it now checks that there is no mapping at all, because a
+      # platform package that maps an entity is one that installs a table, and
+      # the next one would arrive exactly the way those did.
+      - name: Assert the adapter maps no entity
         run: |
-          fail=0
-          for f in src/mapping/*.orm.xml; do
-            class=$(grep -oP '(?<=<entity name="CoolMS\\Core\\)[A-Za-z\\]+' "$f" | head -1)
-            expected=$(echo "$class" | tr '\\' '.').orm.xml
-            if [ "$(basename "$f")" != "$expected" ]; then
-              echo "::error file=$f::expected $expected for CoolMS\\Core\\$class"
-              fail=1
-            fi
-          done
-          [ "$fail" = 0 ] && echo "confirmed: every mapping file matches its class"
-          exit $fail
+          if [ -e src/mapping ]; then
+            echo "::error::src/mapping is back -- this package installs no table"
+            exit 1
+          fi
+          if grep -n "'orm'" src/DependencyInjection/CoreDoctrineExtension.php; then
+            echo "::error::an ORM mapping is prepended again"
+            exit 1
+          fi
+          echo "confirmed: the adapter maps no entity"
 
   boundary:
     name: No application code

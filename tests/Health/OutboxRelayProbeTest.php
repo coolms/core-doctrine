@@ -7,17 +7,26 @@ namespace CoolMS\Core\Doctrine\Tests\Health;
 use CoolMS\Core\Doctrine\Health\OutboxRelayProbe;
 use CoolMS\Core\Outbox\OutboxBacklog;
 use CoolMS\Core\Outbox\OutboxBacklogInterface;
+use CoolMS\Core\Outbox\RelayHeartbeat;
+use CoolMS\Core\Outbox\RelayHeartbeatInterface;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Symfony\Component\Clock\MockClock;
 
 /**
- * The relay records nothing of itself, so the probe infers from the backlog --
- * and the one thing it must never do is call an empty queue "ok". A dead relay
- * over an idle producer looks exactly like a live one; that case is `unknown`,
- * not counted, with the last published row as the activity it CAN report.
+ * Without a heartbeat the relay records nothing of itself, so the probe infers
+ * from the backlog -- and the one thing it must never do is call an empty
+ * queue "ok". A dead relay over an idle producer looks exactly like a live
+ * one; that case is `unknown`, not counted, with the last published row as
+ * the activity it CAN report.
+ *
+ * With a heartbeat wired the same empty queue has an answer: a beat inside
+ * the window is a relay that ran, none or a stale one is a relay that
+ * stopped, and a fresh beat over rows past the grace period is a relay that
+ * runs and does not publish.
  */
 final class OutboxRelayProbeTest extends TestCase
 {
@@ -115,6 +124,110 @@ final class OutboxRelayProbeTest extends TestCase
             'rows in the outbox unpublished for more than 600s, and max(published_at) (the relay records nothing of itself)',
             $probe->check()->ask,
         );
+    }
+
+    #[Test]
+    public function withAHeartbeatAFreshBeatOverAnEmptyQueueIsOk(): void
+    {
+        $clock = new MockClock('2026-09-21 09:00:30');
+        $probe = new OutboxRelayProbe(
+            $this->backlog(new OutboxBacklog(0, 0, null)),
+            $this->connection('2026-09-21 04:25:30'),
+            $this->heartbeat(new RelayHeartbeat(new DateTimeImmutable('2026-09-21 09:00:24'), 100, 0)),
+            $clock,
+        );
+
+        $state = $probe->check();
+
+        self::assertSame('ok', $state->status());
+        self::assertFalse($state->isFailing());
+        self::assertSame('heartbeat 6s ago: a batch of 100 asked, 0 published; 0 unpublished now', $state->detail);
+        self::assertSame(
+            '2026-09-21 09:00:24',
+            $state->lastActivityAt?->format('Y-m-d H:i:s'),
+            'the beat, not the last row',
+        );
+        self::assertStringContainsString('last heartbeat (within 60s)', $state->ask);
+    }
+
+    #[Test]
+    public function withAHeartbeatABeatOlderThanTheWindowIsAStoppedRelay(): void
+    {
+        $probe = new OutboxRelayProbe(
+            $this->backlog(new OutboxBacklog(0, 0, null)),
+            $this->connection(null),
+            $this->heartbeat(new RelayHeartbeat(new DateTimeImmutable('2026-09-21 08:58:00'), 100, 3)),
+            new MockClock('2026-09-21 09:00:30'),
+        );
+
+        $state = $probe->check();
+
+        self::assertSame('DOWN', $state->status());
+        self::assertTrue($state->isFailing(), 'an empty queue no longer excuses a relay that stopped beating');
+        self::assertSame(
+            'last heartbeat 150s ago at 2026-09-21T08:58:00+00:00 -- the relay has stopped',
+            $state->detail,
+        );
+        self::assertSame('2026-09-21 08:58:00', $state->lastActivityAt?->format('Y-m-d H:i:s'));
+    }
+
+    #[Test]
+    public function withAHeartbeatNoBeatAtAllIsARelayThatNeverRan(): void
+    {
+        $probe = new OutboxRelayProbe(
+            $this->backlog(new OutboxBacklog(2, 0, new DateTimeImmutable('2026-09-21 09:00:00'))),
+            $this->connection('2026-09-21 04:25:30'),
+            $this->heartbeat(null),
+            new MockClock('2026-09-21 09:00:30'),
+        );
+
+        $state = $probe->check();
+
+        self::assertSame('DOWN', $state->status());
+        self::assertStringContainsString('no heartbeat recorded -- the relay has not run', $state->detail);
+        self::assertSame(
+            '2026-09-21 04:25:30',
+            $state->lastActivityAt?->format('Y-m-d H:i:s'),
+            'the last row is all there is to report',
+        );
+    }
+
+    #[Test]
+    public function withAHeartbeatAFreshBeatOverStaleRowsIsARelayThatDoesNotPublish(): void
+    {
+        $probe = new OutboxRelayProbe(
+            $this->backlog(new OutboxBacklog(7, 3, new DateTimeImmutable('2026-09-21 08:00:00'))),
+            $this->connection('2026-09-21 04:25:30'),
+            $this->heartbeat(new RelayHeartbeat(new DateTimeImmutable('2026-09-21 09:00:27'), 100, 0)),
+            new MockClock('2026-09-21 09:00:30'),
+        );
+
+        $state = $probe->check();
+
+        self::assertSame('DOWN', $state->status());
+        self::assertStringContainsString(
+            'beating (3s ago) but 3 row(s) unpublished past the grace period',
+            $state->detail,
+        );
+        self::assertStringContainsString('the relay runs and does not publish', $state->detail);
+    }
+
+    private function heartbeat(?RelayHeartbeat $last): RelayHeartbeatInterface
+    {
+        return new class($last) implements RelayHeartbeatInterface {
+            public function __construct(private readonly ?RelayHeartbeat $last)
+            {
+            }
+
+            public function beat(RelayHeartbeat $heartbeat): void
+            {
+            }
+
+            public function last(): ?RelayHeartbeat
+            {
+                return $this->last;
+            }
+        };
     }
 
     private function backlog(OutboxBacklog $result): OutboxBacklogInterface

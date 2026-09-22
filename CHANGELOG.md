@@ -12,6 +12,13 @@ same commit as the change it describes.
 
 ## Unreleased
 
+### Removed
+- The outbox and journal adapters (`Outbox\PersistingOutboxAppender`,
+  `Outbox\DbalOutboxRelayRepository`, `Inbox\DbalProcessedMessageStore`), the
+  relay's liveness probe and the two entity mappings that came with them. This
+  package maps and persists what the platform defines; those two tables are an
+  installation's, so their mapping and their SQL go with them.
+
 ### Added
 - `Health\OutboxRelayProbe` reads the relay's heartbeat when one is wired
   (`CoolMS\Core\Outbox\RelayHeartbeatInterface`, optional): a beat inside a

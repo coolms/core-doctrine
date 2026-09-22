@@ -7,16 +7,10 @@ namespace CoolMS\Core\Doctrine\Tests\DependencyInjection;
 use CoolMS\Core\Config\ConfigOverrideRepositoryInterface;
 use CoolMS\Core\Doctrine\Config\ConfigOverrideRepository;
 use CoolMS\Core\Doctrine\DependencyInjection\CoreDoctrineExtension;
-use CoolMS\Core\Doctrine\Inbox\DbalProcessedMessageStore;
-use CoolMS\Core\Doctrine\Outbox\DbalOutboxRelayRepository;
-use CoolMS\Core\Doctrine\Outbox\PersistingOutboxAppender;
 use CoolMS\Core\Doctrine\Transaction\DoctrineTransactionRunner;
 use CoolMS\Core\Doctrine\Type\DateRangeType;
 use CoolMS\Core\Doctrine\Type\DateTimeRangeType;
 use CoolMS\Core\Doctrine\Type\TimeRangeType;
-use CoolMS\Core\Inbox\ProcessedMessageStoreInterface;
-use CoolMS\Core\Outbox\OutboxAppenderInterface;
-use CoolMS\Core\Outbox\OutboxRelayRepositoryInterface;
 use CoolMS\Core\Transaction\TransactionRunnerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -42,9 +36,6 @@ final class CoreDoctrineExtensionTest extends TestCase
     public static function bindings(): iterable
     {
         yield 'transaction runner' => [TransactionRunnerInterface::class, DoctrineTransactionRunner::class];
-        yield 'outbox appender' => [OutboxAppenderInterface::class, PersistingOutboxAppender::class];
-        yield 'outbox relay repository' => [OutboxRelayRepositoryInterface::class, DbalOutboxRelayRepository::class];
-        yield 'processed message store' => [ProcessedMessageStoreInterface::class, DbalProcessedMessageStore::class];
         yield 'config override repository' => [ConfigOverrideRepositoryInterface::class, ConfigOverrideRepository::class];
     }
 

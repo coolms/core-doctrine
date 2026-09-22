@@ -13,6 +13,10 @@ same commit as the change it describes.
 ## Unreleased
 
 ### Removed
+- `Backup\DoctrineTableBackup`: the DBAL adapter for
+  `TableBackupPortInterface`. It dumps and RESTORES rows -- deletes and inserts
+  in every module's tables -- and it moved with the engine it serves. The port
+  stays in `coolms/core`; a module that owns backup answers it.
 - `Config\ConfigOverrideRepository` and the config-override mapping: the
   last entity this package mapped. **The adapter now installs no table at
   all** -- it supplies transactions, repositories and column types, and every

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace CoolMS\Core\Doctrine\DependencyInjection;
 
-use CoolMS\Core\Config\ConfigOverrideRepositoryInterface;
-use CoolMS\Core\Doctrine\Config\ConfigOverrideRepository;
 use CoolMS\Core\Doctrine\Transaction\DoctrineTransactionRunner;
 use CoolMS\Core\Doctrine\Type\DateRangeType;
 use CoolMS\Core\Doctrine\Type\DateTimeRangeType;
@@ -37,10 +35,6 @@ final class CoreDoctrineExtension extends Extension implements PrependExtensionI
             ->setAutoconfigured(false)
             ->setPublic(false);
         $container->setAlias(TransactionRunnerInterface::class, DoctrineTransactionRunner::class);
-
-        // DB-backed config overrides. The chain falls through to
-        // FileConfigLoader whenever no override row exists.
-        $container->setAlias(ConfigOverrideRepositoryInterface::class, ConfigOverrideRepository::class);
     }
 
     public function getAlias(): string
@@ -50,12 +44,25 @@ final class CoreDoctrineExtension extends Extension implements PrependExtensionI
 
     /**
      * Doctrine configuration the adapter owns: the platform's custom column
-     * types, and the XML mapping for Core's four persisted rows.
+     * types.
      *
-     * Colocating both with the adapter keeps it self-sufficient -- no host
+     * Colocating them with the adapter keeps it self-sufficient -- no host
      * `doctrine.yaml` edit is required, and an application that drops this
      * package loses the Doctrine config along with the Doctrine classes rather
      * than being left with dangling references.
+     *
+     * ## There is no entity mapping here any more, and that is the point
+     *
+     * This package used to carry an XML mapping for four persisted rows -- the
+     * transactional outbox, the consumer-idempotency journal, the sync
+     * change-feed and the config-override store -- because the entity classes
+     * ship in `coolms/core`, which must not import the ORM. Through September
+     * 2026 all four moved to the modules that read and write them (Messaging,
+     * Sync, Settings), where they map by attribute like every other module's
+     * rows. A platform package that installed tables for data only a module
+     * writes is the thing those moves removed: the adapter now supplies
+     * behaviour -- transactions, repositories, column types -- and owns no
+     * table at all.
      */
     public function prepend(ContainerBuilder $container): void
     {
@@ -65,43 +72,6 @@ final class CoreDoctrineExtension extends Extension implements PrependExtensionI
                     DateRangeType::NAME => DateRangeType::class,
                     DateTimeRangeType::NAME => DateTimeRangeType::class,
                     TimeRangeType::NAME => TimeRangeType::class,
-                ],
-            ],
-        ]);
-
-        // Core's four persisted rows -- the transactional outbox,
-        // the consumer-idempotency inbox (F7 section 2), the sync change-feed
-        // and the config-override store.
-        //
-        // XML, not attributes: the entity classes ship in `coolms/core`, which
-        // must not import the ORM. The mapping therefore lives here, and travels
-        // with this package.
-        //
-        // ONE mapping covers the whole `CoolMS\Core` prefix; the simplified XML
-        // driver keys on the file name (`Outbox.OutboxRecord.orm.xml`).
-        //
-        // Warning: the driver owns that entire namespace. A new entity added
-        // under CoolMS\Core WITHOUT a matching .orm.xml is simply not mapped,
-        // and nothing reports it -- the class just never becomes an entity. Add
-        // the file at the same time as the class.
-        $container->prependExtensionConfig('doctrine', [
-            'orm' => [
-                'entity_managers' => [
-                    'central' => [
-                        'mappings' => [
-                            'CoreDoctrine' => [
-                                // NOT is_bundle: `dir` is resolved against the
-                                // bundle directory otherwise. vendor/, not
-                                // packages/, so it holds however this package
-                                // is installed.
-                                'is_bundle' => false,
-                                'type' => 'xml',
-                                'dir' => '%kernel.project_dir%/vendor/coolms/core-doctrine/src/mapping',
-                                'prefix' => 'CoolMS\\Core',
-                                'alias' => 'Core',
-                            ],
-                        ],
-                    ],
                 ],
             ],
         ]);

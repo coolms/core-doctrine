@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace CoolMS\Core\Doctrine\Tests\DependencyInjection;
 
-use CoolMS\Core\Config\ConfigOverrideRepositoryInterface;
-use CoolMS\Core\Doctrine\Config\ConfigOverrideRepository;
 use CoolMS\Core\Doctrine\DependencyInjection\CoreDoctrineExtension;
 use CoolMS\Core\Doctrine\Transaction\DoctrineTransactionRunner;
 use CoolMS\Core\Doctrine\Type\DateRangeType;
@@ -36,7 +34,6 @@ final class CoreDoctrineExtensionTest extends TestCase
     public static function bindings(): iterable
     {
         yield 'transaction runner' => [TransactionRunnerInterface::class, DoctrineTransactionRunner::class];
-        yield 'config override repository' => [ConfigOverrideRepositoryInterface::class, ConfigOverrideRepository::class];
     }
 
     /**
@@ -83,53 +80,28 @@ final class CoreDoctrineExtensionTest extends TestCase
     }
 
     /**
-     * The mapping is XML because the entity classes ship in coolms/core, which
-     * must not import the ORM. `is_bundle: false` matters: with it true,
-     * Doctrine resolves `dir` against a bundle directory and the path silently
-     * fails to find the mapping files.
+     * ## The adapter maps NOTHING, and this is the test that says so.
+     *
+     * It used to prepend an XML mapping for four rows that shipped in
+     * `coolms/core` -- the outbox, the idempotency journal, the sync
+     * change-feed and the config-override store -- because a Domain package
+     * must not import the ORM. Through September 2026 each of the four moved
+     * to the module that reads and writes it, and the mapping directory went
+     * with the last of them.
+     *
+     * Asserted rather than assumed: a platform package that maps an entity is
+     * a platform package that installs a table, and the next one would arrive
+     * exactly the way these did -- one file at a time, each reasonable on its
+     * own.
      */
     #[Test]
-    public function itPrependsTheEntityMappingAsStandaloneXml(): void
+    public function itPrependsNoEntityMappingAtAll(): void
     {
         $container = new ContainerBuilder();
         new CoreDoctrineExtension()->prepend($container);
 
-        $mapping = $this->doctrineConfig($container)['orm']['entity_managers']['central']['mappings']['CoreDoctrine'];
-
-        self::assertFalse($mapping['is_bundle']);
-        self::assertSame('xml', $mapping['type']);
-        self::assertSame('CoolMS\Core', $mapping['prefix']);
-        self::assertStringEndsWith('/vendor/coolms/core-doctrine/src/mapping', $mapping['dir']);
-    }
-
-    /**
-     * Every entity the mapping prefix claims must have a file, because the
-     * driver reports nothing when one is missing -- the class simply never
-     * becomes an entity.
-     */
-    #[Test]
-    public function everyMappingFileIsNamedForTheClassItMaps(): void
-    {
-        $files = glob(dirname(__DIR__, 2) . '/src/mapping/*.orm.xml') ?: [];
-
-        self::assertNotEmpty($files, 'the mapping directory is empty');
-
-        foreach ($files as $file) {
-            $xml = (string) file_get_contents($file);
-            self::assertMatchesRegularExpression(
-                '/<entity name="CoolMS\\\\Core\\\\[A-Za-z\\\\]+"/',
-                $xml,
-                basename($file) . ' does not map a CoolMS\Core class',
-            );
-
-            // SimplifiedXmlDriver derives the file name from the class name
-            // minus the prefix, dots for separators.
-            if (1 !== preg_match('/<entity name="CoolMS\\\\Core\\\\([A-Za-z\\\\]+)"/', $xml, $m)) {
-                self::fail(basename($file) . ' has no <entity name="CoolMS\Core\..."> element');
-            }
-            $expected = str_replace('\\', '.', $m[1]) . '.orm.xml';
-            self::assertSame($expected, basename($file));
-        }
+        self::assertArrayNotHasKey('orm', $this->doctrineConfig($container));
+        self::assertDirectoryDoesNotExist(dirname(__DIR__, 2) . '/src/mapping');
     }
 
     /**

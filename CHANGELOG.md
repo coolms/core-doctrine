@@ -13,6 +13,12 @@ same commit as the change it describes.
 ## Unreleased
 
 ### Removed
+- `Config\ConfigOverrideRepository` and the config-override mapping: the
+  last entity this package mapped. **The adapter now installs no table at
+  all** -- it supplies transactions, repositories and column types, and every
+  row it used to map (outbox, idempotency journal, change feed, config
+  overrides) now belongs to the module that reads and writes it. The ORM
+  mapping prepend is gone with the `src/mapping` directory.
 - The change-feed adapters (recorder, reader, pruner, local row source), the
   flush listener that captured what a unit of work committed, and the feed
   row's mapping. This package maps and persists what the platform defines,

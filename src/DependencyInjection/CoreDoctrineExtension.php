@@ -6,17 +6,10 @@ namespace CoolMS\Core\Doctrine\DependencyInjection;
 
 use CoolMS\Core\Config\ConfigOverrideRepositoryInterface;
 use CoolMS\Core\Doctrine\Config\ConfigOverrideRepository;
-use CoolMS\Core\Doctrine\Inbox\DbalProcessedMessageStore;
-use CoolMS\Core\Doctrine\Outbox\DbalOutboxRelayRepository;
-use CoolMS\Core\Doctrine\Outbox\PersistingOutboxAppender;
 use CoolMS\Core\Doctrine\Transaction\DoctrineTransactionRunner;
 use CoolMS\Core\Doctrine\Type\DateRangeType;
 use CoolMS\Core\Doctrine\Type\DateTimeRangeType;
 use CoolMS\Core\Doctrine\Type\TimeRangeType;
-use CoolMS\Core\Inbox\ProcessedMessageStoreInterface;
-use CoolMS\Core\Outbox\OutboxAppenderInterface;
-use CoolMS\Core\Outbox\OutboxBacklogInterface;
-use CoolMS\Core\Outbox\OutboxRelayRepositoryInterface;
 use CoolMS\Core\Transaction\TransactionRunnerInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -44,26 +37,6 @@ final class CoreDoctrineExtension extends Extension implements PrependExtensionI
             ->setAutoconfigured(false)
             ->setPublic(false);
         $container->setAlias(TransactionRunnerInterface::class, DoctrineTransactionRunner::class);
-
-        // F7 -- the transactional-outbox append port. The concrete
-        // PersistingOutboxAppender is registered + made public by the services
-        // scan (#[Autoconfigure(public: true)]) so it survives before any
-        // producer consumes the port; here we only alias the L0 contract to it.
-        // The alias stays private and is pruned-as-unused until the first
-        // producer migrates onto the outbox -- by design.
-        $container->setAlias(OutboxAppenderInterface::class, PersistingOutboxAppender::class)
-            ->setPublic(false);
-
-        // F7 relay side (the read half of the outbox). The publisher stays in
-        // core-bundle: dispatching is a messaging concern, not a
-        // persistence one, and this package owns persistence.
-        $container->setAlias(OutboxBacklogInterface::class, DbalOutboxRelayRepository::class);
-        $container->setAlias(OutboxRelayRepositoryInterface::class, DbalOutboxRelayRepository::class)
-            ->setPublic(false);
-
-        // F7 section 2 -- consumer idempotency store.
-        $container->setAlias(ProcessedMessageStoreInterface::class, DbalProcessedMessageStore::class)
-            ->setPublic(false);
 
         // DB-backed config overrides. The chain falls through to
         // FileConfigLoader whenever no override row exists.

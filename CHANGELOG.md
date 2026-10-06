@@ -10,7 +10,7 @@ major number means here.
 history when this file was created. Every entry after that is written in the
 same commit as the change it describes.
 
-## Unreleased
+## 2.0.0-alpha3 - 2026-10-07
 
 ### Removed
 - `Backup\DoctrineTableBackup`: the DBAL adapter for
@@ -45,7 +45,7 @@ same commit as the change it describes.
   running `SELECT 1`, which fails when the server is down, when credentials are
   wrong and when the pool is exhausted -- three states in which an installation is
   broken while its configuration looks perfect.
-- `Health\OutboxRelayProbe` (contributed by the modules session): reports the
+- `Health\OutboxRelayProbe`: reports the
   unpublished outbox backlog -- rows past the grace period, rows in all, and the
   oldest one's timestamp as the dependency's last known activity. The relay
   records nothing of itself, so a stopped relay is inferred from its backlog

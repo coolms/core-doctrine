@@ -13,7 +13,8 @@ out. Nothing jumps the train because it feels urgent, and nothing holds the
 train because it is not finished -- it catches the next one.
 
 The one exception is a **security fix**, which ships when it is ready, on any
-day.
+day. It is also the one change that may skip the deprecation described below, on
+the conditions given there.
 
 If your pull request misses a Tuesday, nothing is wrong. It goes out on the
 next one.
@@ -92,6 +93,19 @@ So a change that would break callers is two pull requests, usually months apart:
 Without the deprecation window a Tuesday cadence would just batch the same
 churn -- two breaking changes a fortnight apart still produce 2.0 and then 3.0.
 The window is the mechanism; the calendar is not.
+
+### A security fix may change behaviour without a deprecation
+
+A security fix may change or remove behaviour in the release that fixes it,
+without a deprecation first, when all three of these hold:
+
+- the change is limited to what closes the issue;
+- the changelog entry names it as a security change and tells users what to
+  change on their side;
+- until the release that contains the fix is out, no public text -- an issue, a
+  pull request, a commit message, the changelog -- says how to exploit it.
+
+Every other change that would break callers keeps the deprecation first.
 
 ## Write the changelog in the same commit as the work
 

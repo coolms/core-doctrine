@@ -51,10 +51,43 @@ final class DoctrineFailurePathWriterTest extends TestCase
     }
 
     #[Test]
-    public function itConnectsOnlyAtTheFirstRecordAndNeverOnTheLazyBeginConnection(): void
+    public function withNoUnitOpenARecordGoesThroughTheDefaultManagerAndItsSurroundingTransaction(): void
+    {
+        // No unit open: the default manager commits each write at once already. A transaction around its connection
+        // (a test's rollback) takes the record with it, and the writer never opens a second connection.
+        $connection = $this->em->getConnection();
+        $connection->beginTransaction();
+        $this->writer->write(static function (EntityManagerInterface $em): void {
+            $em->getConnection()->executeStatement("INSERT INTO evidence (v) VALUES ('outside any unit')");
+        });
+        $connection->rollBack();
+
+        self::assertSame([], $connection->fetchFirstColumn('SELECT v FROM evidence'));
+        self::assertFalse($this->writer->connected(), 'no connection of its own');
+    }
+
+    #[Test]
+    public function withoutAnOwnerEveryRecordGoesThroughTheDefaultManager(): void
+    {
+        $registry = $this->createStub(ManagerRegistry::class);
+        $registry->method('getManager')->willReturn($this->em);
+        $writer = new DoctrineFailurePathWriter($registry);
+
+        $class = null;
+        $writer->write(static function (EntityManagerInterface $em) use (&$class): void {
+            $class = $em->getConnection()::class;
+        });
+
+        self::assertSame(LazyBeginConnection::class, $class, 'the default manager\'s connection');
+        self::assertFalse($writer->connected());
+    }
+
+    #[Test]
+    public function itConnectsOnlyAtTheFirstRecordInsideAUnitAndNeverOnTheLazyBeginConnection(): void
     {
         self::assertFalse($this->writer->connected(), 'nothing built before a record');
 
+        $this->unit->begin();
         $class = null;
         $this->writer->write(static function (EntityManagerInterface $em) use (&$class): void {
             $class = $em->getConnection()::class;
@@ -62,6 +95,7 @@ final class DoctrineFailurePathWriterTest extends TestCase
 
         self::assertTrue($this->writer->connected());
         self::assertNotSame(LazyBeginConnection::class, $class, 'no unit of work owns its connection');
+        $this->unit->discard();
     }
 
     protected function setUp(): void
@@ -81,7 +115,7 @@ final class DoctrineFailurePathWriterTest extends TestCase
         $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManager')->willReturn($this->em);
         $this->unit = new DoctrineUnitOfWork($registry);
-        $this->writer = new DoctrineFailurePathWriter($registry);
+        $this->writer = new DoctrineFailurePathWriter($registry, $this->unit);
     }
 
     protected function tearDown(): void

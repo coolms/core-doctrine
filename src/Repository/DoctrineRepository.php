@@ -19,10 +19,10 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 /**
  * Abstract Doctrine Repository.
  *
- * Provides save() and delete() with optional deferred-flush support
- * (controlled by the coolms.persistence.transaction_mode container parameter).
- * Actual flush is handled by DeferredFlushSubscriber on kernel.response /
- * kernel.terminate / console.terminate when transaction mode is active.
+ * Provides save() and delete(), each of which flushes. Inside a unit of work
+ * (CoolMS\Core\Transaction\UnitOfWorkOwnerInterface) the flush runs inside the
+ * unit's transaction, so nothing is committed before the unit's owner commits;
+ * outside one it commits at once. There is no deferred-flush mode any more.
  *
  * NOTE: find(Uuid $id) from RepositoryInterface is satisfied by the parent
  * ServiceEntityRepository::find(mixed $id) -- PHP allows a wider parameter
@@ -39,7 +39,8 @@ abstract class DoctrineRepository extends ServiceEntityRepository implements Rep
     public function __construct(
         ManagerRegistry $registry,
         string $entityClass,
-        private readonly ParameterBagInterface $parameterBag,
+        // Unused since the deferred-flush mode was removed; kept so the 85+ subclasses need no change.
+        ParameterBagInterface $parameterBag,
         protected readonly ?DoctrineRqlVisitor $rqlVisitor = null,
     ) {
         parent::__construct($registry, $entityClass);
@@ -73,9 +74,6 @@ abstract class DoctrineRepository extends ServiceEntityRepository implements Rep
         if (!$em->contains($entity)) {
             $em->persist($entity);
         }
-        if ($this->isTransactionMode()) {
-            return;
-        }
         $em->flush();
     }
 
@@ -83,9 +81,6 @@ abstract class DoctrineRepository extends ServiceEntityRepository implements Rep
     {
         $em = $this->getEntityManager();
         $em->remove($entity);
-        if ($this->isTransactionMode()) {
-            return;
-        }
         $em->flush();
     }
 
@@ -95,11 +90,5 @@ abstract class DoctrineRepository extends ServiceEntityRepository implements Rep
     public function refresh(IdentifierProviderInterface $entity): void
     {
         $this->getEntityManager()->refresh($entity);
-    }
-
-    private function isTransactionMode(): bool
-    {
-        return $this->parameterBag->has('coolms.persistence.transaction_mode')
-            && $this->parameterBag->get('coolms.persistence.transaction_mode');
     }
 }

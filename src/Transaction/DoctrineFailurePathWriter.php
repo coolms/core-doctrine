@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CoolMS\Core\Doctrine\Transaction;
 
 use CoolMS\Core\Transaction\FailurePathWriterInterface;
+use CoolMS\Core\Transaction\UnitOfWorkOwnerInterface;
 use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
@@ -22,13 +23,20 @@ use function assert;
  *
  * Nothing is connected or built until the first record (a request that refuses nothing costs nothing). The connection
  * is a plain DBAL connection, never the lazy-begin wrapper: no unit of work owns it.
+ *
+ * Only while a unit of work is OPEN does a record need a connection of its own. With none open -- the owners switched
+ * off, or a write outside any owner -- the default manager already commits each write at once, so the record goes
+ * through it, exactly as any other write: no second connection, and whatever wraps that connection (a test's rollback)
+ * wraps the record too.
  */
 final class DoctrineFailurePathWriter implements FailurePathWriterInterface
 {
     private ?EntityManagerInterface $em = null;
 
-    public function __construct(private readonly ManagerRegistry $registry)
-    {
+    public function __construct(
+        private readonly ManagerRegistry $registry,
+        private readonly ?UnitOfWorkOwnerInterface $owner = null,
+    ) {
     }
 
     public function persist(object $entity): void
@@ -39,8 +47,9 @@ final class DoctrineFailurePathWriter implements FailurePathWriterInterface
     }
 
     /**
-     * Runs $work with the failure-path manager, flushes and commits at once, and clears the manager. For writes a
-     * single persist() does not express -- an UPDATE of rows the request's own manager also reads.
+     * Runs $work with the failure-path manager, flushes and commits at once, and clears the manager -- or, with no
+     * unit of work open, with the default manager in a transaction of its own. For writes a single persist() does not
+     * express -- an UPDATE of rows the request's own manager also reads.
      *
      * @template T
      *
@@ -50,6 +59,12 @@ final class DoctrineFailurePathWriter implements FailurePathWriterInterface
      */
     public function write(callable $work): mixed
     {
+        if (null === $this->owner || !$this->owner->ownerActive()) {
+            $default = $this->registry->getManager();
+            assert($default instanceof EntityManagerInterface);
+
+            return $default->wrapInTransaction($work);
+        }
         $em = $this->em();
         try {
             return $em->wrapInTransaction($work);

@@ -17,6 +17,8 @@ same commit as the change it describes.
 - `Transaction\DoctrineFailurePathWriter`: the failure-path writer -- an entity manager of its own on a connection
   of its own, built from the default manager's configuration on the first record; `persist()` and `write(callable)`
   commit before returning. `DoctrineUnitOfWork`'s flush listeners now count only the default manager's flushes.
+  With no unit of work open, a record goes through the default manager in a transaction of its own (an optional
+  `UnitOfWorkOwnerInterface` constructor argument tells it); the connection of its own is used only inside a unit.
 
 ### Removed
 

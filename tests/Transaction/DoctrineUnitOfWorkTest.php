@@ -18,7 +18,6 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Throwable;
 
-use function method_exists;
 use function sys_get_temp_dir;
 
 #[CoversClass(DoctrineUnitOfWork::class)]
@@ -212,9 +211,6 @@ final class DoctrineUnitOfWorkTest extends TestCase
         $config->setMetadataDriverImpl(new AttributeDriver([]));
         $config->setProxyDir(sys_get_temp_dir());
         $config->setProxyNamespace('CoolMSUnitOfWorkTestProxies');
-        if (method_exists($config, 'enableNativeLazyObjects')) {
-            $config->enableNativeLazyObjects(true);
-        }
         $this->em = new EntityManager($this->connection, $config);
         $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManager')->willReturn($this->em);

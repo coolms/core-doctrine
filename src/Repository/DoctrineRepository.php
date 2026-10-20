@@ -43,6 +43,7 @@ abstract class DoctrineRepository extends ServiceEntityRepository implements Rep
         ParameterBagInterface $parameterBag,
         protected readonly ?DoctrineRqlVisitor $rqlVisitor = null,
     ) {
+        unset($parameterBag);
         parent::__construct($registry, $entityClass);
     }
 

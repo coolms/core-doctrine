@@ -11,6 +11,7 @@ use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 
@@ -43,16 +44,17 @@ final class SaveAndDeleteFlushTest extends TestCase
         $this->repository($em)->delete($this->entity());
     }
 
-    /** @return DoctrineRepository<IdentifierProviderInterface> */
-    private function repository(EntityManagerInterface $em): DoctrineRepository
+    private function repository(EntityManagerInterface&MockObject $em): ProbeRepository
     {
         $em->method('getClassMetadata')->willReturn(new ClassMetadata(IdentifierProviderInterface::class));
         $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($em);
 
-        /* @var DoctrineRepository<IdentifierProviderInterface> */
-        return new class($registry, IdentifierProviderInterface::class, new ParameterBag(['coolms.persistence.transaction_mode' => true])) extends DoctrineRepository {
-        };
+        return new ProbeRepository(
+            $registry,
+            IdentifierProviderInterface::class,
+            new ParameterBag(['coolms.persistence.transaction_mode' => true]),
+        );
     }
 
     private function entity(): IdentifierProviderInterface

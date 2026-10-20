@@ -83,6 +83,17 @@ final class DoctrineFailurePathWriter implements FailurePathWriterInterface
         return null !== $this->em && $this->em->getConnection()->isConnected();
     }
 
+    /**
+     * The default manager's event manager, as the EntityManager constructor takes it. ORM 3.6 returns an
+     * EventManager from getEventManager(); ORM 3.7 widens the return to EventManagerInterface while the constructor
+     * still takes EventManager|null -- the narrowing is needed on one and redundant on the other, so it lives here,
+     * typed for both.
+     */
+    private static function eventManager(object $events): ?EventManager
+    {
+        return $events instanceof EventManager ? $events : null;
+    }
+
     private function em(): EntityManagerInterface
     {
         if (null !== $this->em) {
@@ -96,12 +107,10 @@ final class DoctrineFailurePathWriter implements FailurePathWriterInterface
         $connection = DriverManager::getConnection($params, $default->getConnection()->getConfiguration());
 
         // The default manager's listeners, so a record is written as the application writes it.
-        $events = $default->getEventManager();
-
         return $this->em = new EntityManager(
             $connection,
             $default->getConfiguration(),
-            $events instanceof EventManager ? $events : null,
+            self::eventManager($default->getEventManager()),
         );
     }
 }

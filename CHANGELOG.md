@@ -10,6 +10,18 @@ Versioning is described in the [CoolMS contributing guide](https://github.com/co
 history when this file was created. Every entry after that is written in the
 same commit as the change it describes.
 
+## Unreleased
+
+### Added
+
+- `Transaction\DoctrineUnitOfWork`: the Doctrine adapter of `UnitOfWorkInterface` and `UnitOfWorkOwnerInterface`
+  (coolms/core), through ManagerRegistry. A discard rolls back every level the unit began; a commit is refused while a
+  flush runs and when the manager is closed or rollback-only; after-commit effects run after the outermost commit and
+  are dropped on a discard.
+- `Transaction\LazyBeginConnection` (a DBAL `wrapper_class`) and `Transaction\WriteOrLockStatement`: a unit's
+  transaction begins before the first statement that writes or takes a lock, so a unit that only reads issues no
+  BEGIN and no COMMIT.
+
 ## 2.0.0-alpha3 - 2026-10-07
 
 ### Removed

@@ -9,12 +9,15 @@ use CoolMS\Core\Transaction\UnitOfWorkInterface;
 use CoolMS\Core\Transaction\UnitOfWorkOwnerInterface;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Event\PostFlushEventArgs;
+use Doctrine\ORM\Event\PreFlushEventArgs;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Throwable;
 
 use function count;
+use function max;
 
 /**
  * The Doctrine unit of work, through ManagerRegistry: the default manager and its connection. Both contracts, one
@@ -163,16 +166,23 @@ final class DoctrineUnitOfWork implements UnitOfWorkInterface, UnitOfWorkOwnerIn
         $effect();
     }
 
-    /** The manager's preFlush listener. */
-    public function preFlush(): void
+    /**
+     * The manager's preFlush listener. Only the default manager's flushes count: another manager on the same event
+     * manager (the failure-path writer's) flushes outside the unit.
+     */
+    public function preFlush(?PreFlushEventArgs $args = null): void
     {
-        ++$this->flushing;
+        if (null === $args || $args->getObjectManager() === $this->registry->getManager()) {
+            ++$this->flushing;
+        }
     }
 
-    /** The manager's postFlush listener. */
-    public function postFlush(): void
+    /** The manager's postFlush listener; the default manager's only, as preFlush. */
+    public function postFlush(?PostFlushEventArgs $args = null): void
     {
-        $this->flushing = max(0, $this->flushing - 1);
+        if (null === $args || $args->getObjectManager() === $this->registry->getManager()) {
+            $this->flushing = max(0, $this->flushing - 1);
+        }
     }
 
     /** How many after-commit effects the open unit holds; for owners' diagnostics. */

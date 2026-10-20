@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CoolMS\Core\Doctrine\Transaction;
 
 use CoolMS\Core\Transaction\FailurePathWriterInterface;
+use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\EntityManager;
@@ -79,6 +80,13 @@ final class DoctrineFailurePathWriter implements FailurePathWriterInterface
         $params['wrapperClass'] = Connection::class;
         $connection = DriverManager::getConnection($params, $default->getConnection()->getConfiguration());
 
-        return $this->em = new EntityManager($connection, $default->getConfiguration(), $default->getEventManager());
+        // The default manager's listeners, so a record is written as the application writes it.
+        $events = $default->getEventManager();
+
+        return $this->em = new EntityManager(
+            $connection,
+            $default->getConfiguration(),
+            $events instanceof EventManager ? $events : null,
+        );
     }
 }

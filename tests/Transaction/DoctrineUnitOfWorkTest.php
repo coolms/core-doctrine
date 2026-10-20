@@ -8,14 +8,18 @@ use CoolMS\Core\Doctrine\Transaction\DoctrineUnitOfWork;
 use CoolMS\Core\Doctrine\Transaction\LazyBeginConnection;
 use CoolMS\Core\Transaction\UnitOfWorkException;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManager;
-use Doctrine\ORM\ORMSetup;
+use Doctrine\ORM\Mapping\Driver\AttributeDriver;
 use Doctrine\Persistence\ManagerRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Throwable;
+
+use function method_exists;
+use function sys_get_temp_dir;
 
 #[CoversClass(DoctrineUnitOfWork::class)]
 #[CoversClass(LazyBeginConnection::class)]
@@ -203,8 +207,14 @@ final class DoctrineUnitOfWorkTest extends TestCase
         self::assertInstanceOf(LazyBeginConnection::class, $connection);
         $this->connection = $connection;
         $this->connection->executeStatement('CREATE TABLE t (v TEXT)');
-        $config = ORMSetup::createAttributeMetadataConfig([__DIR__], true);
-        $config->enableNativeLazyObjects(true);
+        // Built by hand: the ORMSetup helpers differ across the ORM 3.x versions CI resolves (lowest and highest).
+        $config = new Configuration();
+        $config->setMetadataDriverImpl(new AttributeDriver([]));
+        $config->setProxyDir(sys_get_temp_dir());
+        $config->setProxyNamespace('CoolMSUnitOfWorkTestProxies');
+        if (method_exists($config, 'enableNativeLazyObjects')) {
+            $config->enableNativeLazyObjects(true);
+        }
         $this->em = new EntityManager($this->connection, $config);
         $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManager')->willReturn($this->em);

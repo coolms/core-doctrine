@@ -12,6 +12,13 @@ same commit as the change it describes.
 
 ## Unreleased
 
+### Removed
+
+- The deferred-flush mode of `Repository\DoctrineRepository`: `save()` and `delete()` always flush, and the
+  `coolms.persistence.transaction_mode` parameter no longer changes anything. A unit of work's owner decides the commit,
+  and a flush inside the unit is part of its transaction. The constructor's `ParameterBagInterface` argument stays,
+  unused, so subclasses need no change.
+
 ### Added
 
 - `Transaction\DoctrineUnitOfWork`: the Doctrine adapter of `UnitOfWorkInterface` and `UnitOfWorkOwnerInterface`

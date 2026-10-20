@@ -12,6 +12,12 @@ same commit as the change it describes.
 
 ## Unreleased
 
+### Added
+
+- `Transaction\DoctrineFailurePathWriter`: the failure-path writer -- an entity manager of its own on a connection
+  of its own, built from the default manager's configuration on the first record; `persist()` and `write(callable)`
+  commit before returning. `DoctrineUnitOfWork`'s flush listeners now count only the default manager's flushes.
+
 ### Removed
 
 - The deferred-flush mode of `Repository\DoctrineRepository`: `save()` and `delete()` always flush, and the

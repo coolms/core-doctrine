@@ -59,11 +59,18 @@ final class DoctrineFailurePathWriter implements FailurePathWriterInterface
      */
     public function write(callable $work): mixed
     {
-        if (null === $this->owner || !$this->owner->ownerActive()) {
-            $default = $this->registry->getManager();
-            assert($default instanceof EntityManagerInterface);
+        if (!$this->unitOpen()) {
+            $default = $this->default();
 
-            return $default->wrapInTransaction($work);
+            // Not the manager's wrapInTransaction(): it CLOSES the manager when the work throws, and this manager is
+            // the request's own -- a refused record would leave the rest of the request unable to write. The
+            // connection's transaction rolls back and leaves the manager as it was.
+            return $default->getConnection()->transactional(static function () use ($default, $work): mixed {
+                $result = $work($default);
+                $default->flush();
+
+                return $result;
+            });
         }
         $em = $this->em();
         try {
@@ -75,6 +82,27 @@ final class DoctrineFailurePathWriter implements FailurePathWriterInterface
                 $this->em = null; // a failed write closed it: the next record builds a fresh one
             }
         }
+    }
+
+    /**
+     * Runs $work with a plain DBAL connection, each statement committed as it runs (autocommit): the writer's own
+     * connection while a unit of work is open, the default one otherwise. For records written as statements -- a
+     * counter's upsert, an increment retried after a unique violation -- whose semantics are the statement's, not a
+     * transaction's.
+     *
+     * @template T
+     *
+     * @param callable(Connection): T $work
+     *
+     * @return T
+     */
+    public function execute(callable $work): mixed
+    {
+        if (!$this->unitOpen()) {
+            return $work($this->default()->getConnection());
+        }
+
+        return $work($this->em()->getConnection());
     }
 
     /** Whether the writer has connected yet -- false until the first record. */
@@ -92,6 +120,19 @@ final class DoctrineFailurePathWriter implements FailurePathWriterInterface
     private static function eventManager(object $events): ?EventManager
     {
         return $events instanceof EventManager ? $events : null;
+    }
+
+    private function unitOpen(): bool
+    {
+        return null !== $this->owner && $this->owner->ownerActive();
+    }
+
+    private function default(): EntityManagerInterface
+    {
+        $default = $this->registry->getManager();
+        assert($default instanceof EntityManagerInterface);
+
+        return $default;
     }
 
     private function em(): EntityManagerInterface

@@ -19,6 +19,8 @@ same commit as the change it describes.
   commit before returning. `DoctrineUnitOfWork`'s flush listeners now count only the default manager's flushes.
   With no unit of work open, a record goes through the default manager in a transaction of its own (an optional
   `UnitOfWorkOwnerInterface` constructor argument tells it); the connection of its own is used only inside a unit.
+  With no unit open, a failing `write()` rolls back without closing the default manager. `execute(callable)` runs
+  plain DBAL statements in autocommit: on the writer's own connection inside a unit, on the default one outside.
 
 ### Removed
 

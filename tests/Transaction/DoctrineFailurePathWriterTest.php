@@ -7,6 +7,7 @@ namespace CoolMS\Core\Doctrine\Tests\Transaction;
 use CoolMS\Core\Doctrine\Transaction\DoctrineFailurePathWriter;
 use CoolMS\Core\Doctrine\Transaction\DoctrineUnitOfWork;
 use CoolMS\Core\Doctrine\Transaction\LazyBeginConnection;
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManager;
@@ -16,6 +17,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 use function method_exists;
 use function sys_get_temp_dir;
@@ -64,6 +66,41 @@ final class DoctrineFailurePathWriterTest extends TestCase
 
         self::assertSame([], $connection->fetchFirstColumn('SELECT v FROM evidence'));
         self::assertFalse($this->writer->connected(), 'no connection of its own');
+    }
+
+    #[Test]
+    public function withNoUnitOpenAFailedWriteLeavesTheDefaultManagerOpen(): void
+    {
+        // The default manager is the request's own: a refused record must not close it for the rest of the request.
+        // A write that swallowed the exception would commit the row: the last assertion fails then.
+        try {
+            $this->writer->write(static function (EntityManagerInterface $em): void {
+                $em->getConnection()->executeStatement("INSERT INTO evidence (v) VALUES ('rolled back')");
+
+                throw new RuntimeException('the record is refused');
+            });
+        } catch (RuntimeException) {
+        }
+
+        self::assertTrue($this->em->isOpen(), 'the request\'s manager can still write');
+        self::assertSame([], $this->em->getConnection()->fetchFirstColumn('SELECT v FROM evidence'), 'rolled back');
+    }
+
+    #[Test]
+    public function aStatementOutsideAUnitRunsOnTheDefaultConnectionAndInsideOnItsOwn(): void
+    {
+        $outside = $this->writer->execute(static fn (Connection $c): string => $c::class);
+        self::assertSame(LazyBeginConnection::class, $outside, 'no unit open: the default connection');
+        self::assertFalse($this->writer->connected());
+
+        $this->unit->begin();
+        $this->writer->execute(static function (Connection $c): void {
+            $c->executeStatement("INSERT INTO evidence (v) VALUES ('the count')");
+        });
+        $this->em->getConnection()->executeStatement("INSERT INTO evidence (v) VALUES ('the refused change')");
+        $this->unit->discard();
+
+        self::assertSame(['the count'], $this->em->getConnection()->fetchFirstColumn('SELECT v FROM evidence'), 'committed as it ran');
     }
 
     #[Test]

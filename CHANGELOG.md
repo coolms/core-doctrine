@@ -10,7 +10,13 @@ Versioning is described in the [CoolMS contributing guide](https://github.com/co
 history when this file was created. Every entry after that is written in the
 same commit as the change it describes.
 
-## Unreleased
+## 2.0.0-alpha4 - 2026-10-22
+
+### Changed
+
+- Requires `coolms/core` 2.0.0-alpha5: the failure-path writer and the unit of work implement
+  `FailurePathWriterInterface`, `UnitOfWorkInterface` and `UnitOfWorkOwnerInterface`, and throw
+  `UnitOfWorkException`, which earlier alphas of `coolms/core` do not have.
 
 ### Added
 

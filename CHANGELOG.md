@@ -18,6 +18,16 @@ same commit as the change it describes.
   that a single `persist()` does not express, `write()` (a manager) and `execute()` (a connection, autocommit).
   `DoctrineFailurePathWriter` implements it. A consumer that depends on the interface instead of the final class
   lets an application put something in front of the writer.
+- `Transaction\FailurePathTimedOut`. The failure-path writer's own connection now waits for a lock at most 2 s and
+  runs a statement at most 5 s (PostgreSQL's `lock_timeout` and `statement_timeout`, set on the session at every
+  connect; constructor arguments). A write cancelled by either is logged as an error -- by its SQLSTATE, never by
+  its SQL -- and thrown as `FailurePathTimedOut`. `persist()` carries records only, so it drops the record and returns:
+  a request is never held up behind the rows its own unit of work has locked.
+
+### Changed
+
+- Requires `doctrine/persistence` 4.1: 4.0 calls `ReflectionProperty::setAccessible()`, deprecated in PHP 8.5, the
+  version this package requires.
 
 ## 2.0.0-alpha4 - 2026-10-22
 

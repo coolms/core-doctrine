@@ -10,6 +10,15 @@ Versioning is described in the [CoolMS contributing guide](https://github.com/co
 history when this file was created. Every entry after that is written in the
 same commit as the change it describes.
 
+## Unreleased
+
+### Added
+
+- `Transaction\DoctrineFailurePathWriterInterface`: `FailurePathWriterInterface` plus the two forms a record takes
+  that a single `persist()` does not express, `write()` (a manager) and `execute()` (a connection, autocommit).
+  `DoctrineFailurePathWriter` implements it. A consumer that depends on the interface instead of the final class
+  lets an application put something in front of the writer.
+
 ## 2.0.0-alpha4 - 2026-10-22
 
 ### Changed

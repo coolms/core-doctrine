@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CoolMS\Core\Doctrine\Tests\Transaction;
 
 use CoolMS\Core\Doctrine\Transaction\DoctrineFailurePathWriter;
+use CoolMS\Core\Doctrine\Transaction\DoctrineFailurePathWriterInterface;
 use CoolMS\Core\Doctrine\Transaction\DoctrineUnitOfWork;
 use CoolMS\Core\Doctrine\Transaction\LazyBeginConnection;
 use Doctrine\DBAL\Connection;
@@ -36,6 +37,20 @@ final class DoctrineFailurePathWriterTest extends TestCase
     private EntityManager $em;
     private DoctrineUnitOfWork $unit;
     private DoctrineFailurePathWriter $writer;
+
+    #[Test]
+    public function throughTheInterfaceItsConsumersDependOnBothFormsOutliveTheUnit(): void
+    {
+        $this->unit->begin();
+        $this->writeThrough($this->writer);
+        $this->unit->discard();
+
+        self::assertSame(
+            ['a statement', 'a write'],
+            $this->em->getConnection()->fetchFirstColumn('SELECT v FROM evidence ORDER BY v'),
+            'both committed before the discard',
+        );
+    }
 
     #[Test]
     public function aRecordWrittenThroughItSurvivesTheDiscardOfTheUnitAroundIt(): void
@@ -159,5 +174,16 @@ final class DoctrineFailurePathWriterTest extends TestCase
     {
         $this->em->getConnection()->close();
         @unlink($this->file);
+    }
+
+    /** Typed as a consumer types it: write() and execute() through the interface. */
+    private function writeThrough(DoctrineFailurePathWriterInterface $writer): void
+    {
+        $writer->execute(static function (Connection $c): void {
+            $c->executeStatement("INSERT INTO evidence (v) VALUES ('a statement')");
+        });
+        $writer->write(static function (EntityManagerInterface $em): void {
+            $em->getConnection()->executeStatement("INSERT INTO evidence (v) VALUES ('a write')");
+        });
     }
 }

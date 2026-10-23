@@ -24,6 +24,8 @@ interface DoctrineFailurePathWriterInterface extends FailurePathWriterInterface
      *
      * @param callable(EntityManagerInterface): T $work
      *
+     * @throws FailurePathTimedOut when a timeout cancelled it -- logged by then; the caller decides whether to go on
+     *
      * @return T
      */
     public function write(callable $work): mixed;
@@ -35,6 +37,8 @@ interface DoctrineFailurePathWriterInterface extends FailurePathWriterInterface
      * @template T
      *
      * @param callable(Connection): T $work
+     *
+     * @throws FailurePathTimedOut when a timeout cancelled it -- logged by then; the caller decides whether to go on
      *
      * @return T
      */

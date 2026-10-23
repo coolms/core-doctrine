@@ -28,7 +28,7 @@
         "doctrine/dbal": "^4.0",
         "doctrine/doctrine-bundle": "^3.2",
         "doctrine/orm": "^3.0",
-        "doctrine/persistence": "^4.0",
+        "doctrine/persistence": "^4.1",
         "psr/clock": "^1.0",
         "psr/log": "^3.0",
         "symfony/clock": "^8.0",

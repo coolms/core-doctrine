@@ -8,11 +8,15 @@ use CoolMS\Core\Transaction\UnitOfWorkOwnerInterface;
 use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
+use Psr\Log\LoggerInterface;
+use Throwable;
 
 use function assert;
+use function in_array;
 
 /**
  * The failure-path writer on Doctrine: an entity manager of its own, on a connection of its own to the same database,
@@ -27,22 +31,38 @@ use function assert;
  * off, or a write outside any owner -- the default manager already commits each write at once, so the record goes
  * through it, exactly as any other write: no second connection, and whatever wraps that connection (a test's rollback)
  * wraps the record too.
+ *
+ * Its own connection waits for a lock at most $lockTimeoutMs and runs a statement at most $statementTimeoutMs
+ * (PostgreSQL's lock_timeout and statement_timeout, set by FailurePathSessionTimeouts on every connection it opens): a record must never hold a
+ * request up behind the rows that request's own unit of work has locked. A write cancelled by either is logged as an
+ * error -- by SQLSTATE, never by its SQL, whose parameters may be credentials -- and thrown as FailurePathTimedOut.
+ * persist() writes records only, so it swallows it; write() and execute() let the caller decide.
  */
 final class DoctrineFailurePathWriter implements DoctrineFailurePathWriterInterface
 {
+    private const array CANCELLED = ['55P03', '57014'];
+
     private ?EntityManagerInterface $em = null;
 
     public function __construct(
         private readonly ManagerRegistry $registry,
         private readonly ?UnitOfWorkOwnerInterface $owner = null,
+        private readonly ?LoggerInterface $logger = null,
+        private readonly int $lockTimeoutMs = 2000,
+        private readonly int $statementTimeoutMs = 5000,
     ) {
     }
 
+    /** A record, and nothing but: one cancelled by a timeout is logged and dropped, and the request goes on. */
     public function persist(object $entity): void
     {
-        $this->write(static function (EntityManagerInterface $em) use ($entity): void {
-            $em->persist($entity);
-        });
+        try {
+            $this->write(static function (EntityManagerInterface $em) use ($entity): void {
+                $em->persist($entity);
+            }, 'a record of ' . $entity::class);
+        } catch (FailurePathTimedOut) {
+            // Logged where it was cancelled.
+        }
     }
 
     /**
@@ -54,9 +74,11 @@ final class DoctrineFailurePathWriter implements DoctrineFailurePathWriterInterf
      *
      * @param callable(EntityManagerInterface): T $work
      *
+     * @throws FailurePathTimedOut on the writer's own connection, after it has been logged
+     *
      * @return T
      */
-    public function write(callable $work): mixed
+    public function write(callable $work, string $what = 'a write'): mixed
     {
         if (!$this->unitOpen()) {
             $default = $this->default();
@@ -74,6 +96,8 @@ final class DoctrineFailurePathWriter implements DoctrineFailurePathWriterInterf
         $em = $this->em();
         try {
             return $em->wrapInTransaction($work);
+        } catch (Throwable $failed) {
+            throw $this->cancelled($failed, $what) ?? $failed;
         } finally {
             if ($em->isOpen()) {
                 $em->clear();
@@ -93,15 +117,21 @@ final class DoctrineFailurePathWriter implements DoctrineFailurePathWriterInterf
      *
      * @param callable(Connection): T $work
      *
+     * @throws FailurePathTimedOut on the writer's own connection, after it has been logged
+     *
      * @return T
      */
-    public function execute(callable $work): mixed
+    public function execute(callable $work, string $what = 'a statement'): mixed
     {
         if (!$this->unitOpen()) {
             return $work($this->default()->getConnection());
         }
-
-        return $work($this->em()->getConnection());
+        $connection = $this->em()->getConnection();
+        try {
+            return $work($connection);
+        } catch (Throwable $failed) {
+            throw $this->cancelled($failed, $what) ?? $failed;
+        }
     }
 
     /** Whether the writer has connected yet -- false until the first record. */
@@ -119,6 +149,26 @@ final class DoctrineFailurePathWriter implements DoctrineFailurePathWriterInterf
     private static function eventManager(object $events): ?EventManager
     {
         return $events instanceof EventManager ? $events : null;
+    }
+
+    /** The timeout that cancelled $failed, logged -- or null when it was not one. */
+    private function cancelled(Throwable $failed, string $what): ?FailurePathTimedOut
+    {
+        for ($cause = $failed; null !== $cause; $cause = $cause->getPrevious()) {
+            $state = $cause instanceof DriverException ? $cause->getSQLState() : null;
+            if (null !== $state && in_array($state, self::CANCELLED, true)) {
+                $timedOut = new FailurePathTimedOut($state, $failed);
+                $this->logger?->error('A failure-path write ({what}) was cancelled by its {timeout} (SQLSTATE {sqlstate}).', [
+                    'what' => $what,
+                    'timeout' => '55P03' === $state ? 'lock timeout of ' . $this->lockTimeoutMs . ' ms' : 'statement timeout of ' . $this->statementTimeoutMs . ' ms',
+                    'sqlstate' => $state,
+                ]);
+
+                return $timedOut;
+            }
+        }
+
+        return null;
     }
 
     private function unitOpen(): bool
@@ -144,7 +194,16 @@ final class DoctrineFailurePathWriter implements DoctrineFailurePathWriterInterf
         $params = $default->getConnection()->getParams();
         unset($params['wrapperClass']);
         $params['wrapperClass'] = Connection::class;
-        $connection = DriverManager::getConnection($params, $default->getConnection()->getConfiguration());
+        // A copy: the default connection's configuration is the request connection's too, and the timeouts are the
+        // writer's alone. FIRST: DBAL wraps middlewares in order, so only the first receives the driver itself -- one
+        // after the application's own (a write counter, a debug logger) would receive their wrapper, never see a
+        // PostgreSQL driver, and set nothing.
+        $configuration = clone $default->getConnection()->getConfiguration();
+        $configuration->setMiddlewares([
+            new FailurePathSessionTimeouts($this->lockTimeoutMs, $this->statementTimeoutMs),
+            ...$configuration->getMiddlewares(),
+        ]);
+        $connection = DriverManager::getConnection($params, $configuration);
 
         // The default manager's listeners, so a record is written as the application writes it.
         return $this->em = new EntityManager(

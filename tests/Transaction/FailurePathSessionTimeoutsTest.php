@@ -59,6 +59,40 @@ final class FailurePathSessionTimeoutsTest extends TestCase
     }
 
     #[Test]
+    public function theWritersConnectionRunsThemBehindTheApplicationsOwnMiddlewares(): void
+    {
+        // An application's connection always carries middlewares of its own (a write counter, a debug logger), and
+        // DBAL wraps them in order: whatever comes after them receives their wrapper, never the PostgreSQL driver.
+        RecordingPostgreSQLDriver::$opened = [];
+        $config = new Configuration();
+        $config->setMiddlewares([new PassThroughMiddleware(), new PassThroughMiddleware()]);
+        $config->setMetadataDriverImpl(new AttributeDriver([]));
+        $config->setProxyDir(sys_get_temp_dir());
+        $config->setProxyNamespace('CoolMSFailurePathSessionProxies');
+        if (method_exists($config, 'enableNativeLazyObjects')) { // @phpstan-ignore function.alreadyNarrowedType
+            $config->enableNativeLazyObjects(true);
+        }
+        $connection = DriverManager::getConnection(
+            ['driverClass' => RecordingPostgreSQLDriver::class, 'wrapperClass' => LazyBeginConnection::class],
+            $config,
+        );
+        $em = new EntityManager($connection, $config);
+        $registry = $this->createStub(ManagerRegistry::class);
+        $registry->method('getManager')->willReturn($em);
+        $unit = new DoctrineUnitOfWork($registry);
+        $writer = new DoctrineFailurePathWriter($registry, $unit);
+
+        $unit->begin();
+        $writer->execute(static function (Connection $c): void {
+            $c->getNativeConnection(); // connects: the driver runs what it runs on every new connection
+        });
+        $unit->discard();
+
+        $sets = array_map(static fn (ExecutedStatements $c): array => $c->sql, RecordingPostgreSQLDriver::$opened);
+        self::assertContains(["SET lock_timeout = '2000ms'", "SET statement_timeout = '5000ms'"], $sets, 'the writer\'s connection');
+    }
+
+    #[Test]
     public function onlyTheWritersOwnConnectionCarriesThem(): void
     {
         $file = (string) tempnam(sys_get_temp_dir(), 'fps') . '.sqlite';

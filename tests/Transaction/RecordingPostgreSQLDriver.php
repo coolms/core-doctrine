@@ -17,10 +17,14 @@ final class RecordingPostgreSQLDriver extends AbstractPostgreSQLDriver
     /** @var list<ExecutedStatements> one per connection opened */
     public array $connections = [];
 
+    /** @var list<ExecutedStatements> every connection any instance opened -- DriverManager makes its own instance */
+    public static array $opened = [];
+
     public function connect(#[SensitiveParameter] array $params): Connection
     {
         $executed = new ExecutedStatements();
         $this->connections[] = $executed;
+        self::$opened[] = $executed;
 
         return new class($executed) implements Connection {
             public function __construct(private readonly ExecutedStatements $executed)

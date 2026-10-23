@@ -195,11 +195,13 @@ final class DoctrineFailurePathWriter implements DoctrineFailurePathWriterInterf
         unset($params['wrapperClass']);
         $params['wrapperClass'] = Connection::class;
         // A copy: the default connection's configuration is the request connection's too, and the timeouts are the
-        // writer's alone.
+        // writer's alone. FIRST: DBAL wraps middlewares in order, so only the first receives the driver itself -- one
+        // after the application's own (a write counter, a debug logger) would receive their wrapper, never see a
+        // PostgreSQL driver, and set nothing.
         $configuration = clone $default->getConnection()->getConfiguration();
         $configuration->setMiddlewares([
-            ...$configuration->getMiddlewares(),
             new FailurePathSessionTimeouts($this->lockTimeoutMs, $this->statementTimeoutMs),
+            ...$configuration->getMiddlewares(),
         ]);
         $connection = DriverManager::getConnection($params, $configuration);
 

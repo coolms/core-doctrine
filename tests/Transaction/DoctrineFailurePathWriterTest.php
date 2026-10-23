@@ -150,17 +150,6 @@ final class DoctrineFailurePathWriterTest extends TestCase
         $this->unit->discard();
     }
 
-    /** Typed as a consumer types it: write() and execute() through the interface. */
-    private function writeThrough(DoctrineFailurePathWriterInterface $writer): void
-    {
-        $writer->execute(static function (Connection $c): void {
-            $c->executeStatement("INSERT INTO evidence (v) VALUES ('a statement')");
-        });
-        $writer->write(static function (EntityManagerInterface $em): void {
-            $em->getConnection()->executeStatement("INSERT INTO evidence (v) VALUES ('a write')");
-        });
-    }
-
     protected function setUp(): void
     {
         $this->file = (string) tempnam(sys_get_temp_dir(), 'fpw') . '.sqlite';
@@ -185,5 +174,16 @@ final class DoctrineFailurePathWriterTest extends TestCase
     {
         $this->em->getConnection()->close();
         @unlink($this->file);
+    }
+
+    /** Typed as a consumer types it: write() and execute() through the interface. */
+    private function writeThrough(DoctrineFailurePathWriterInterface $writer): void
+    {
+        $writer->execute(static function (Connection $c): void {
+            $c->executeStatement("INSERT INTO evidence (v) VALUES ('a statement')");
+        });
+        $writer->write(static function (EntityManagerInterface $em): void {
+            $em->getConnection()->executeStatement("INSERT INTO evidence (v) VALUES ('a write')");
+        });
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CoolMS\Core\Doctrine\Tests\Transaction;
 
 use CoolMS\Core\Doctrine\Transaction\DoctrineFailurePathWriter;
+use CoolMS\Core\Doctrine\Transaction\DoctrineFailurePathWriterInterface;
 use CoolMS\Core\Doctrine\Transaction\DoctrineUnitOfWork;
 use CoolMS\Core\Doctrine\Transaction\LazyBeginConnection;
 use Doctrine\DBAL\Connection;
@@ -35,7 +36,17 @@ final class DoctrineFailurePathWriterTest extends TestCase
     private string $file = '';
     private EntityManager $em;
     private DoctrineUnitOfWork $unit;
-    private DoctrineFailurePathWriter $writer;
+    // Through the interface a consumer depends on: write() and execute() are on it.
+    private DoctrineFailurePathWriterInterface $writer;
+
+    #[Test]
+    public function theWriterIsTheInterfaceItsConsumersDependOn(): void
+    {
+        self::assertInstanceOf(
+            DoctrineFailurePathWriterInterface::class,
+            new DoctrineFailurePathWriter($this->createStub(ManagerRegistry::class)),
+        );
+    }
 
     #[Test]
     public function aRecordWrittenThroughItSurvivesTheDiscardOfTheUnitAroundIt(): void

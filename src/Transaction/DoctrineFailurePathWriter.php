@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace CoolMS\Core\Doctrine\Transaction;
 
-use CoolMS\Core\Transaction\FailurePathWriterInterface;
 use CoolMS\Core\Transaction\UnitOfWorkOwnerInterface;
 use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
@@ -29,7 +28,7 @@ use function assert;
  * through it, exactly as any other write: no second connection, and whatever wraps that connection (a test's rollback)
  * wraps the record too.
  */
-final class DoctrineFailurePathWriter implements FailurePathWriterInterface
+final class DoctrineFailurePathWriter implements DoctrineFailurePathWriterInterface
 {
     private ?EntityManagerInterface $em = null;
 

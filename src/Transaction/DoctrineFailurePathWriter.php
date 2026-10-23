@@ -9,7 +9,6 @@ use Doctrine\Common\EventManager;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception\DriverException;
-use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
@@ -18,7 +17,6 @@ use Throwable;
 
 use function assert;
 use function in_array;
-use function sprintf;
 
 /**
  * The failure-path writer on Doctrine: an entity manager of its own, on a connection of its own to the same database,
@@ -35,7 +33,7 @@ use function sprintf;
  * wraps the record too.
  *
  * Its own connection waits for a lock at most $lockTimeoutMs and runs a statement at most $statementTimeoutMs
- * (PostgreSQL's lock_timeout and statement_timeout, set on the session when it connects): a record must never hold a
+ * (PostgreSQL's lock_timeout and statement_timeout, set by FailurePathSessionTimeouts on every connection it opens): a record must never hold a
  * request up behind the rows that request's own unit of work has locked. A write cancelled by either is logged as an
  * error -- by SQLSTATE, never by its SQL, whose parameters may be credentials -- and thrown as FailurePathTimedOut.
  * persist() writes records only, so it swallows it; write() and execute() let the caller decide.
@@ -45,7 +43,6 @@ final class DoctrineFailurePathWriter implements DoctrineFailurePathWriterInterf
     private const array CANCELLED = ['55P03', '57014'];
 
     private ?EntityManagerInterface $em = null;
-    private ?bool $postgres = null;
 
     public function __construct(
         private readonly ManagerRegistry $registry,
@@ -98,8 +95,6 @@ final class DoctrineFailurePathWriter implements DoctrineFailurePathWriterInterf
         }
         $em = $this->em();
         try {
-            $this->timeouts($em->getConnection());
-
             return $em->wrapInTransaction($work);
         } catch (Throwable $failed) {
             throw $this->cancelled($failed, $what) ?? $failed;
@@ -133,8 +128,6 @@ final class DoctrineFailurePathWriter implements DoctrineFailurePathWriterInterf
         }
         $connection = $this->em()->getConnection();
         try {
-            $this->timeouts($connection);
-
             return $work($connection);
         } catch (Throwable $failed) {
             throw $this->cancelled($failed, $what) ?? $failed;
@@ -156,22 +149,6 @@ final class DoctrineFailurePathWriter implements DoctrineFailurePathWriterInterf
     private static function eventManager(object $events): ?EventManager
     {
         return $events instanceof EventManager ? $events : null;
-    }
-
-    /**
-     * The session's timeouts, set on every (re)connect: a session setting does not survive a new connection. PostgreSQL
-     * only -- other platforms name them differently or not at all, and get none.
-     */
-    private function timeouts(Connection $connection): void
-    {
-        if ($connection->isConnected() && null !== $this->postgres) {
-            return;
-        }
-        $this->postgres = $connection->getDatabasePlatform() instanceof PostgreSQLPlatform;
-        if ($this->postgres) {
-            $connection->executeStatement(sprintf("SET lock_timeout = '%dms'", $this->lockTimeoutMs));
-            $connection->executeStatement(sprintf("SET statement_timeout = '%dms'", $this->statementTimeoutMs));
-        }
     }
 
     /** The timeout that cancelled $failed, logged -- or null when it was not one. */
@@ -217,7 +194,14 @@ final class DoctrineFailurePathWriter implements DoctrineFailurePathWriterInterf
         $params = $default->getConnection()->getParams();
         unset($params['wrapperClass']);
         $params['wrapperClass'] = Connection::class;
-        $connection = DriverManager::getConnection($params, $default->getConnection()->getConfiguration());
+        // A copy: the default connection's configuration is the request connection's too, and the timeouts are the
+        // writer's alone.
+        $configuration = clone $default->getConnection()->getConfiguration();
+        $configuration->setMiddlewares([
+            ...$configuration->getMiddlewares(),
+            new FailurePathSessionTimeouts($this->lockTimeoutMs, $this->statementTimeoutMs),
+        ]);
+        $connection = DriverManager::getConnection($params, $configuration);
 
         // The default manager's listeners, so a record is written as the application writes it.
         return $this->em = new EntityManager(

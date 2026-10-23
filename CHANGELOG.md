@@ -19,8 +19,9 @@ same commit as the change it describes.
   `DoctrineFailurePathWriter` implements it. A consumer that depends on the interface instead of the final class
   lets an application put something in front of the writer.
 - `Transaction\FailurePathTimedOut`. The failure-path writer's own connection now waits for a lock at most 2 s and
-  runs a statement at most 5 s (PostgreSQL's `lock_timeout` and `statement_timeout`, set on the session at every
-  connect; constructor arguments). A write cancelled by either is logged as an error -- by its SQLSTATE, never by
+  runs a statement at most 5 s (PostgreSQL's `lock_timeout` and `statement_timeout`, set by the
+  `Transaction\FailurePathSessionTimeouts` driver middleware on every connection it opens, a reconnect included;
+  constructor arguments). A write cancelled by either is logged as an error -- by its SQLSTATE, never by
   its SQL -- and thrown as `FailurePathTimedOut`. `persist()` carries records only, so it drops the record and returns:
   a request is never held up behind the rows its own unit of work has locked.
 

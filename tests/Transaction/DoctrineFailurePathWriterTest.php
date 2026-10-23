@@ -36,15 +36,19 @@ final class DoctrineFailurePathWriterTest extends TestCase
     private string $file = '';
     private EntityManager $em;
     private DoctrineUnitOfWork $unit;
-    // Through the interface a consumer depends on: write() and execute() are on it.
-    private DoctrineFailurePathWriterInterface $writer;
+    private DoctrineFailurePathWriter $writer;
 
     #[Test]
-    public function theWriterIsTheInterfaceItsConsumersDependOn(): void
+    public function throughTheInterfaceItsConsumersDependOnBothFormsOutliveTheUnit(): void
     {
-        self::assertInstanceOf(
-            DoctrineFailurePathWriterInterface::class,
-            new DoctrineFailurePathWriter($this->createStub(ManagerRegistry::class)),
+        $this->unit->begin();
+        $this->writeThrough($this->writer);
+        $this->unit->discard();
+
+        self::assertSame(
+            ['a statement', 'a write'],
+            $this->em->getConnection()->fetchFirstColumn('SELECT v FROM evidence ORDER BY v'),
+            'both committed before the discard',
         );
     }
 
@@ -144,6 +148,17 @@ final class DoctrineFailurePathWriterTest extends TestCase
         self::assertTrue($this->writer->connected());
         self::assertNotSame(LazyBeginConnection::class, $class, 'no unit of work owns its connection');
         $this->unit->discard();
+    }
+
+    /** Typed as a consumer types it: write() and execute() through the interface. */
+    private function writeThrough(DoctrineFailurePathWriterInterface $writer): void
+    {
+        $writer->execute(static function (Connection $c): void {
+            $c->executeStatement("INSERT INTO evidence (v) VALUES ('a statement')");
+        });
+        $writer->write(static function (EntityManagerInterface $em): void {
+            $em->getConnection()->executeStatement("INSERT INTO evidence (v) VALUES ('a write')");
+        });
     }
 
     protected function setUp(): void
